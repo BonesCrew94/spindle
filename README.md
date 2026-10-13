@@ -12,17 +12,31 @@ devices — on a server you control, with no account anywhere but your own.
   and the sync API from the same port, so there is no CORS to fight and no
   server address to type into the app.
 
-  Built with AI
+---
 
-Spindle was written with AI assistance — the app, the server, and this README. It was specified, tested and deployed by a me, it runs on my own hardware, and it is the podcast player I actually use every day. But the code itself was largely AI-generated, and you should weigh that the way you would weigh any code you did not write yourself.
+## Built with AI
+
+**Spindle was written with AI assistance — the app, the server, and this
+README.** It was specified, tested and deployed by me, it runs on me
+own hardware, and it is the podcast player I actually use every day. But
+the code itself was largely AI-generated, and you should weigh that the way
+you would weigh any code you did not write yourself.
 
 What that means in practice:
 
-It has had no third-party security audit, and no large user base has shaken out its edge cases. The authentication is written carefully — script, HttpOnly cookies, constant-time comparisons, rate limiting — but careful is not the same as audited.
-Read the source before you deploy it anywhere that matters. It is deliberately small enough to do that in an afternoon: one HTML file, one JS file, and no third-party dependencies on either side. That was a design goal, and it is the main reason to trust it more than its size suggests.
-Bugs are likely to be the kind a person would not write and a test suite would not catch. Issues are genuinely welcome.
+- It has had **no third-party security audit**, and no large user base has
+  shaken out its edge cases. The authentication is written carefully — scrypt,
+  HttpOnly cookies, constant-time comparisons, rate limiting — but careful is
+  not the same as audited.
+- **Read the source before you deploy it anywhere that matters.** It is
+  deliberately small enough to do that in an afternoon: one HTML file, one JS
+  file, and no third-party dependencies on either side. That was a design
+  goal, and it is the main reason to trust it more than its size suggests.
+- Bugs are likely to be the kind a person would not write and a test suite
+  would not catch. Issues are genuinely welcome.
 
-It is shared because it works well and somebody else might want it, not because it is a hardened product.
+It is shared because it works well and somebody else might want it, not
+because it is a hardened product.
 
 ---
 
@@ -76,9 +90,18 @@ That's the whole list. No Node install, no package manager, no database.
 ```bash
 git clone https://github.com/bonescrew94/spindle.git
 cd spindle
+mkdir -p data
 docker compose up -d
 docker compose logs spindle
 ```
+
+That `mkdir` matters. Docker creates a missing bind-mount folder as root, and
+the container runs as a normal user, so it would then have nowhere it could
+write. Making the folder yourself first means it belongs to you — which is
+also what keeps it readable for backups later.
+
+If your user is not UID 1000 — check with `id -u` — change the `user:` line
+in `docker-compose.yml` to match before starting it.
 
 The log ends with something like:
 
@@ -182,6 +205,10 @@ Writes are atomic — a temp file then a rename — so a crash mid-write cannot
 leave a truncated account. That is not a backup. Copy the folder somewhere
 else on a schedule.
 
+The container runs as UID 1000 so these files belong to a normal user and can
+be copied without `sudo`. If you changed the `user:` line, they belong to
+whoever you set.
+
 Losing it loses the accounts too, which puts the server back to first-run
 with a new setup code.
 
@@ -258,8 +285,10 @@ Everything lives under `/api/`; all other paths are static files.
 - There is no endpoint that will hand you someone else's history.
 
 This is built for a private server — your own machine, a home network, a
-tailnet. It has had no third-party security audit. If you put it on the open
-internet, put it behind something that terminates TLS, and set
+tailnet. It has had no third-party security audit, and as noted in
+[Built with AI](#built-with-ai) it was largely AI-written, so read it
+yourself before trusting it with anything you would mind losing. If you put
+it on the open internet, put it behind something that terminates TLS, and set
 `SECURE_COOKIES=1`.
 
 ---
@@ -307,6 +336,23 @@ specific show fails while others work, Apple may be pointing at a dead feed
 for a show that changed hosts — get the current RSS URL from the show's own
 site and paste that in instead.
 
+**The container starts and immediately exits, with `EACCES` or
+`permission denied` on `/data` in the log.** The `data` folder is not owned by
+the user the container runs as. Usually it was created by Docker (as root)
+because it did not exist before the first `docker compose up`. Fix both ends:
+
+```bash
+sudo chown -R $(id -u):$(id -g) data
+```
+
+then set `user:` in `docker-compose.yml` to the values `id -u` and `id -g`
+print, and `docker compose up -d` again.
+
+**`rm: cannot remove 'data/...': Permission denied`.** Same cause, seen from
+the other side — those files were written by a container running as root, so
+they are root's. `sudo rm -rf data` clears them, and the `user:` line stops it
+happening again.
+
 **`Cannot find module '/srv/app/server.js'`.** The mount is fine, the file
 is not where it is expected. Check for a wrong folder name, or a file that
 really is `server.js.txt` because the editor added an extension.
@@ -319,9 +365,10 @@ sign in instead.
 
 ## Contributing
 
-Issues and pull requests are welcome. The app is one HTML file and the server
-is one JS file; there is no build to run, so editing either and restarting
-the container is the whole development loop.
+Issues and pull requests are welcome, and bug reports especially — see
+[Built with AI](#built-with-ai) for why. The app is one HTML file and the
+server is one JS file; there is no build to run, so editing either and
+restarting the container is the whole development loop.
 
 ```
 app/
