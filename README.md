@@ -12,6 +12,18 @@ devices — on a server you control, with no account anywhere but your own.
   and the sync API from the same port, so there is no CORS to fight and no
   server address to type into the app.
 
+  Built with AI
+
+Spindle was written with AI assistance — the app, the server, and this README. It was specified, tested and deployed by a me, it runs on my own hardware, and it is the podcast player I actually use every day. But the code itself was largely AI-generated, and you should weigh that the way you would weigh any code you did not write yourself.
+
+What that means in practice:
+
+It has had no third-party security audit, and no large user base has shaken out its edge cases. The authentication is written carefully — script, HttpOnly cookies, constant-time comparisons, rate limiting — but careful is not the same as audited.
+Read the source before you deploy it anywhere that matters. It is deliberately small enough to do that in an afternoon: one HTML file, one JS file, and no third-party dependencies on either side. That was a design goal, and it is the main reason to trust it more than its size suggests.
+Bugs are likely to be the kind a person would not write and a test suite would not catch. Issues are genuinely welcome.
+
+It is shared because it works well and somebody else might want it, not because it is a hardened product.
+
 ---
 
 ## What you get
