@@ -1,0 +1,14 @@
+# Accounts, sessions and listening history. Never commit this.
+data/
+*.log
+
+# Editor and OS noise
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
+
+# Not used by Spindle, but easy to create by accident
+node_modules/
+package-lock.json
