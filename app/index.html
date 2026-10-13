@@ -1,0 +1,2171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<meta name="theme-color" content="#0B0C0E">
+<meta name="color-scheme" content="dark">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Spindle">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Spindle</title>
+<style>
+  :root{
+    color-scheme:dark;
+    --bg:#0B0C0E; --surface:#131519; --surface-2:#1B1E23; --surface-3:#23272E;
+    --line:#24272D; --line-soft:#1A1D22;
+    --text:#E9E6E0; --dim:#868C95; --dimmer:#5A6069;
+    --accent:#E8A33D; --accent-press:#C9882C; --accent-ink:#120D04;
+    --danger:#D4664A;
+    --safe-top:env(safe-area-inset-top, 0px);
+    --safe-bot:env(safe-area-inset-bottom, 0px);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;background:var(--bg);}
+  body{margin:0;color:var(--text);font-size:16px;overscroll-behavior-y:none;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;}
+  button{font-family:inherit;color:inherit;background:none;border:none;padding:0;}
+  button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;}}
+
+  .ico{width:22px;height:22px;display:block;flex-shrink:0;}
+  .ico-sm{width:16px;height:16px;}
+  .ico-lg{width:28px;height:28px;}
+  .hidden{display:none !important;}
+
+  .app{display:flex;flex-direction:column;height:100dvh;}
+
+  /* ---------- top bar ---------- */
+  .topbar{
+    padding:calc(var(--safe-top) + 14px) 14px 12px;
+    display:flex;align-items:center;gap:10px;
+    border-bottom:1px solid var(--line-soft);flex-shrink:0;background:var(--bg);
+  }
+  .topbar .title-slot{flex:1;min-width:0;display:flex;align-items:center;gap:9px;}
+  .wordmark{font-size:1.1rem;font-weight:700;letter-spacing:-0.02em;margin:0;display:flex;align-items:center;gap:9px;}
+  .wordmark .mark{width:24px;height:24px;color:var(--accent);}
+  .view-title{font-size:1.05rem;font-weight:600;margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .topbar-actions{display:flex;gap:7px;}
+  .icon-btn{
+    width:40px;height:40px;border-radius:11px;border:1px solid var(--line);
+    display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text);
+    transition:background .12s;flex-shrink:0;
+  }
+  .icon-btn:active{background:var(--surface-2);}
+  .icon-btn.on{color:var(--accent);border-color:var(--accent);}
+  .icon-btn.plain{border:none;width:36px;}
+
+  .scroller{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:20px;}
+
+  /* ---------- library grid ---------- */
+  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px 14px;padding:18px 16px 8px;}
+  @media(min-width:560px){.grid{grid-template-columns:repeat(3,1fr);}}
+  @media(min-width:820px){.grid{grid-template-columns:repeat(4,1fr);}}
+  .tile{cursor:pointer;text-align:left;display:block;width:100%;}
+  .tile:active{opacity:.7;}
+  .art{
+    width:100%;aspect-ratio:1;border-radius:13px;object-fit:cover;display:block;
+    background:var(--surface);border:1px solid var(--line-soft);
+  }
+  .art-ph{display:flex;align-items:center;justify-content:center;color:var(--surface-3);}
+  .art-ph .ico{width:40%;height:40%;}
+  .tile .name{
+    font-size:0.83rem;font-weight:500;line-height:1.3;margin:9px 0 3px;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+  }
+  .tile .cnt{font-size:0.71rem;color:var(--dim);display:flex;align-items:center;gap:5px;}
+  .tile .dot{width:6px;height:6px;border-radius:50%;background:var(--accent);flex-shrink:0;}
+
+  /* ---------- search ---------- */
+  .search-row{padding:14px 16px 0;display:flex;gap:8px;}
+  .search-row .field{
+    flex:1;min-width:0;display:flex;align-items:center;gap:9px;
+    background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:0 13px;
+  }
+  .search-row .field .ico{color:var(--dimmer);}
+  .search-row input{
+    flex:1;min-width:0;background:none;border:none;color:var(--text);
+    padding:13px 0;font-size:0.94rem;font-family:inherit;
+  }
+  .search-row input::placeholder{color:var(--dimmer);}
+  .search-row input:focus{outline:none;}
+  .search-row .go{
+    background:var(--accent);color:var(--accent-ink);border-radius:12px;
+    padding:0 17px;font-size:0.86rem;font-weight:600;cursor:pointer;
+  }
+  .search-row .go:active{background:var(--accent-press);}
+  .hint{padding:10px 16px 0;font-size:0.77rem;color:var(--dim);}
+  .hint.err{color:var(--danger);}
+
+  .res{display:flex;gap:13px;padding:13px 16px;border-bottom:1px solid var(--line-soft);align-items:center;}
+  .res .art{width:62px;height:62px;flex-shrink:0;border-radius:10px;}
+  .res .rb{flex:1;min-width:0;}
+  .res .rn{font-size:0.9rem;font-weight:500;line-height:1.3;margin:0 0 3px;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+  .res .ra{font-size:0.74rem;color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .res .sub-btn{
+    flex-shrink:0;border:1px solid var(--line);border-radius:9px;padding:8px 12px;
+    font-size:0.75rem;color:var(--text);cursor:pointer;display:flex;align-items:center;gap:5px;
+  }
+  .res .sub-btn.on{border-color:var(--accent);color:var(--accent);}
+
+  /* ---------- show header ---------- */
+  .show-head{display:flex;gap:15px;padding:18px 16px 6px;align-items:flex-start;}
+  .show-head .art{width:104px;height:104px;flex-shrink:0;border-radius:12px;}
+  .show-head .sh-b{flex:1;min-width:0;padding-top:2px;}
+  .show-head h2{margin:0 0 5px;font-size:1.06rem;font-weight:700;letter-spacing:-0.01em;line-height:1.28;}
+  .show-head .auth{font-size:0.76rem;color:var(--dim);margin:0 0 10px;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .show-head .stat{font-size:0.73rem;color:var(--dim);}
+
+  .icon-btn{position:relative;}
+  .sync-dot{
+    position:absolute;right:5px;bottom:5px;width:8px;height:8px;border-radius:50%;
+    border:2px solid var(--bg);box-sizing:content-box;
+  }
+  .sync-dot.off{display:none;}
+  .sync-dot.ok{background:#4E9A6B;}
+  .sync-dot.busy{background:var(--accent);animation:pulse 1s ease-in-out infinite;}
+  .sync-dot.err{background:var(--danger);}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.35;}}
+
+  .p-row{
+    display:flex;align-items:center;gap:11px;padding:14px 0;
+    border-bottom:1px solid var(--line-soft);cursor:pointer;font-size:0.9rem;
+  }
+  .p-row .who{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .p-row .tick{color:var(--accent);display:none;}
+  .p-row.on .tick{display:flex;}
+  .p-row.on .who{color:var(--accent);font-weight:600;}
+  .p-new{display:flex;gap:8px;margin:16px 0 6px;}
+  .p-new input{
+    flex:1;min-width:0;background:var(--surface);border:1px solid var(--line);
+    color:var(--text);border-radius:11px;padding:12px 13px;font-size:0.9rem;font-family:inherit;
+  }
+  .p-new button{background:var(--accent);color:var(--accent-ink);border-radius:11px;
+    padding:0 16px;font-size:0.85rem;font-weight:600;cursor:pointer;}
+  .p-note{font-size:0.77rem;color:var(--dim);line-height:1.6;margin:14px 0 0;}
+  .p-note b{color:var(--text);font-weight:600;}
+  .p-sync{
+    display:flex;align-items:center;justify-content:center;gap:8px;width:100%;
+    border:1px solid var(--line);border-radius:11px;padding:13px;margin-top:14px;
+    font-size:0.85rem;cursor:pointer;color:var(--text);
+  }
+  .p-err{color:var(--danger);font-size:0.8rem;margin-top:12px;line-height:1.55;}
+
+  /* reorder mode */
+  .grid.reordering .tile{cursor:grab;touch-action:none;}
+  .grid.reordering .art{outline:1px dashed var(--line);outline-offset:3px;}
+  .tile .grip{
+    position:absolute;top:7px;right:7px;width:28px;height:28px;border-radius:8px;
+    background:rgba(11,12,14,.82);display:none;align-items:center;justify-content:center;
+    color:var(--accent);
+  }
+  .grid.reordering .tile .grip{display:flex;}
+  .tile{position:relative;}
+  .tile.dragging{opacity:.45;}
+  .tile.dragging .art{outline-color:var(--accent);}
+  .reorder-hint{
+    padding:12px 16px 0;font-size:0.78rem;color:var(--dim);
+    display:flex;align-items:center;gap:8px;
+  }
+  .reorder-hint .ico{color:var(--accent);}
+
+  /* login gate */
+  .gate{
+    position:fixed;inset:0;background:var(--bg);z-index:80;
+    display:none;align-items:center;justify-content:center;padding:24px;
+  }
+  .gate.open{display:flex;}
+  .gate-box{width:100%;max-width:340px;}
+  .gate-mark{width:46px;height:46px;color:var(--accent);display:block;margin:0 auto 18px;}
+  .gate-box h2{margin:0 0 7px;font-size:1.35rem;font-weight:700;letter-spacing:-0.02em;text-align:center;}
+  .gate-sub{margin:0 0 22px;font-size:0.83rem;color:var(--dim);text-align:center;line-height:1.55;}
+  .gate-box input{
+    width:100%;background:var(--surface);border:1px solid var(--line);color:var(--text);
+    border-radius:12px;padding:14px;font-size:0.95rem;font-family:inherit;margin-bottom:10px;
+  }
+  .gate-box input::placeholder{color:var(--dimmer);}
+  .gate-go{
+    width:100%;background:var(--accent);color:var(--accent-ink);border-radius:12px;
+    padding:15px;font-size:0.95rem;font-weight:600;cursor:pointer;margin-top:6px;
+  }
+  .gate-go:active{background:var(--accent-press);}
+  .gate-go[disabled]{opacity:.55;}
+  .gate-alt{
+    width:100%;margin-top:14px;padding:12px;font-size:0.8rem;color:var(--dim);
+    cursor:pointer;text-decoration:underline;
+  }
+  .gate-err{
+    background:rgba(212,102,74,.12);border:1px solid var(--danger);color:var(--danger);
+    border-radius:10px;padding:11px 13px;font-size:0.8rem;margin-bottom:10px;line-height:1.5;
+  }
+
+  .icon-btn.spin svg{animation:spin360 .9s linear infinite;}
+  @keyframes spin360{to{transform:rotate(360deg);}}
+  .toast{
+    position:fixed;left:50%;transform:translateX(-50%) translateY(14px);
+    bottom:calc(88px + var(--safe-bot));z-index:70;
+    background:var(--surface-3);border:1px solid var(--line);color:var(--text);
+    border-radius:999px;padding:11px 20px;font-size:0.84rem;
+    opacity:0;pointer-events:none;transition:opacity .2s, transform .2s;
+  }
+  .toast.on{opacity:1;transform:translateX(-50%) translateY(0);}
+
+  /* new-playlist row */
+  .add-row{padding:14px 16px 4px;display:flex;gap:8px;}
+  .add-row input{
+    flex:1;min-width:0;background:var(--surface);border:1px solid var(--line);
+    color:var(--text);border-radius:12px;padding:13px;font-size:0.92rem;font-family:inherit;
+  }
+  .add-row input::placeholder{color:var(--dimmer);}
+  .add-row input:focus{outline:none;border-color:var(--accent);}
+  .add-row .add-btn{
+    background:var(--accent);color:var(--accent-ink);border-radius:12px;
+    width:50px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;
+  }
+  .add-row .add-btn:active{background:var(--accent-press);}
+
+  /* playlists */
+  .list-row{
+    display:flex;align-items:center;gap:13px;padding:15px 16px;
+    border-bottom:1px solid var(--line-soft);cursor:pointer;
+  }
+  .list-row:active{background:var(--surface);}
+  .list-row.on .lr-n{color:var(--accent);}
+  .lr-ico{
+    width:44px;height:44px;border-radius:11px;background:var(--surface);
+    border:1px solid var(--line);display:flex;align-items:center;justify-content:center;
+    color:var(--dim);flex-shrink:0;
+  }
+  .list-row.on .lr-ico{color:var(--accent);border-color:var(--accent);}
+  .lr-b{flex:1;min-width:0;}
+  .lr-n{font-size:0.94rem;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .lr-c{font-size:0.74rem;color:var(--dim);margin-top:3px;}
+  .lr-play{
+    width:40px;height:40px;border-radius:50%;border:1.5px solid var(--line);
+    background:var(--surface);display:flex;align-items:center;justify-content:center;
+    color:var(--text);cursor:pointer;flex-shrink:0;
+  }
+  .lr-play:active{transform:scale(.93);}
+
+  .list-head{padding:20px 16px 12px;border-bottom:1px solid var(--line-soft);}
+  .list-head h2{margin:0 0 5px;font-size:1.3rem;font-weight:700;letter-spacing:-0.02em;}
+  .lh-sub{font-size:0.76rem;color:var(--dim);margin-bottom:14px;}
+  .lh-play{
+    display:inline-flex;align-items:center;gap:8px;background:var(--accent);
+    color:var(--accent-ink);border-radius:11px;padding:11px 18px;
+    font-size:0.86rem;font-weight:600;cursor:pointer;
+  }
+  .lh-play:active{background:var(--accent-press);}
+  .ep-actions button[disabled]{opacity:.3;}
+
+  .filter-row{padding:12px 16px 4px;display:flex;gap:9px;align-items:center;}
+  .f-chips{display:flex;gap:7px;overflow-x:auto;scrollbar-width:none;flex:1;min-width:0;padding-bottom:1px;}
+  .f-chips::-webkit-scrollbar{display:none;}
+  .f-chips button{border:1px solid var(--line);border-radius:9px;padding:7px 12px;
+    font-size:0.76rem;color:var(--dim);cursor:pointer;white-space:nowrap;flex-shrink:0;}
+  .f-chips button.on{border-color:var(--accent);color:var(--accent);background:rgba(232,163,61,.08);}
+  .sort-btn{
+    flex-shrink:0;display:flex;align-items:center;gap:6px;cursor:pointer;
+    border:1px solid var(--line);border-radius:9px;padding:7px 11px;
+    font-size:0.76rem;color:var(--text);white-space:nowrap;
+  }
+  .sort-btn:active{background:var(--surface-2);}
+  .sort-btn .ico{width:15px;height:15px;color:var(--accent);}
+  .f-count{padding:2px 16px 0;font-size:0.72rem;color:var(--dimmer);}
+
+  /* ---------- episodes ---------- */
+  .ep{display:flex;gap:13px;padding:14px 16px;border-bottom:1px solid var(--line-soft);align-items:flex-start;}
+  .ep.played .ep-title{color:var(--dim);}
+  .ep-play{
+    flex-shrink:0;width:46px;height:46px;border-radius:50%;
+    border:1.5px solid var(--line);background:var(--surface);
+    display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;color:var(--text);
+  }
+  .ep-play:active{transform:scale(.93);}
+  .ep-play.current{border-color:var(--accent);color:var(--accent);}
+  .ep-ring{position:absolute;inset:-1.5px;transform:rotate(-90deg);}
+  .ep-ring circle{fill:none;stroke:var(--accent);stroke-width:2.5;stroke-linecap:round;}
+  .ep-body{flex:1;min-width:0;}
+  .ep-title{margin:0 0 5px;font-size:0.95rem;line-height:1.36;font-weight:500;}
+  .ep-sub{font-size:0.73rem;color:var(--dim);display:flex;gap:9px;flex-wrap:wrap;align-items:center;}
+  .ep-sub .badge{color:var(--accent);display:flex;align-items:center;gap:4px;}
+  .ep-actions{display:flex;gap:7px;margin-top:10px;flex-wrap:wrap;}
+  .ep-actions button{border:1px solid var(--line);border-radius:8px;padding:6px 10px;
+    font-size:0.72rem;color:var(--dim);cursor:pointer;display:flex;align-items:center;gap:5px;}
+  .ep-actions button.on{border-color:var(--accent);color:var(--accent);}
+  .ep-actions button:active{background:var(--surface-2);}
+
+  .msg{padding:52px 28px;text-align:center;color:var(--dim);font-size:0.87rem;line-height:1.65;}
+  .msg strong{display:block;color:var(--text);font-size:1.02rem;margin-bottom:7px;font-weight:600;}
+  .msg .msg-ico{color:var(--dimmer);width:36px;height:36px;margin:0 auto 15px;}
+  .msg .cta{
+    display:inline-flex;align-items:center;gap:7px;margin-top:18px;
+    background:var(--accent);color:var(--accent-ink);border-radius:11px;
+    padding:12px 18px;font-size:0.86rem;font-weight:600;cursor:pointer;
+  }
+  .spinner{
+    width:26px;height:26px;border-radius:50%;margin:40px auto;
+    border:2.5px solid var(--surface-3);border-top-color:var(--accent);
+    animation:spin .7s linear infinite;
+  }
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  /* ---------- mini player ---------- */
+  .mini{
+    flex-shrink:0;display:none;align-items:center;gap:11px;
+    background:var(--surface);border-top:1px solid var(--line);
+    padding:10px 14px calc(10px + var(--safe-bot));cursor:pointer;position:relative;
+  }
+  .mini.on{display:flex;}
+  .mini-bar{position:absolute;top:0;left:0;height:2px;background:var(--accent);transition:width .25s linear;}
+  .mini .art{width:40px;height:40px;border-radius:8px;flex-shrink:0;}
+  .mini-title{font-size:0.84rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .mini-sub{font-size:0.7rem;color:var(--dim);display:flex;align-items:center;gap:5px;}
+  .mini-btn{cursor:pointer;padding:6px;flex-shrink:0;display:flex;color:var(--text);}
+
+  /* ---------- now playing ---------- */
+  .np{
+    position:fixed;inset:0;background:var(--bg);z-index:50;
+    transform:translateY(100%);transition:transform .28s cubic-bezier(.32,.72,0,1);
+    display:flex;flex-direction:column;
+    padding:calc(var(--safe-top) + 10px) 24px calc(var(--safe-bot) + 20px);
+  }
+  .np.open{transform:translateY(0);}
+  .np-grip{align-self:center;width:38px;height:4px;border-radius:2px;background:var(--surface-3);
+    margin-bottom:16px;cursor:pointer;flex-shrink:0;}
+  .np-art{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:4px 0 18px;}
+  .art-wrap{position:relative;width:min(66vw,272px);aspect-ratio:1;}
+  .art-wrap .art{width:100%;height:100%;border-radius:18px;}
+  .art-ring{position:absolute;inset:-9px;width:calc(100% + 18px);height:calc(100% + 18px);pointer-events:none;}
+  .art-ring rect{fill:none;stroke-width:3;rx:26;}
+  .art-ring .rbg{stroke:var(--surface-3);}
+  .art-ring .rfg{stroke:var(--accent);stroke-linecap:round;transition:stroke-dashoffset .25s linear;}
+
+  .np-title{font-size:1.1rem;font-weight:600;line-height:1.35;margin:0 0 4px;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+  .np-show{font-size:0.79rem;color:var(--dim);margin:0 0 14px;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:34px;background:transparent;cursor:pointer;}
+  input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:3px;background:var(--surface-3);}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;
+    background:var(--accent);margin-top:-8px;border:3px solid var(--bg);}
+  input[type=range]::-moz-range-track{height:6px;border-radius:3px;background:var(--surface-3);}
+  input[type=range]::-moz-range-thumb{width:22px;height:22px;border-radius:50%;background:var(--accent);border:3px solid var(--bg);}
+  .times{display:flex;justify-content:space-between;font-size:0.72rem;color:var(--dim);
+    font-family:ui-monospace,Menlo,Consolas,monospace;margin-bottom:18px;}
+
+  .transport{display:flex;align-items:center;justify-content:center;gap:30px;margin-bottom:20px;}
+  .t-btn{cursor:pointer;color:var(--text);display:flex;padding:8px;}
+  .t-btn:active{opacity:.55;}
+  .t-btn .ico{width:32px;height:32px;}
+  .t-main{width:72px;height:72px;border-radius:50%;background:var(--accent);color:var(--accent-ink);
+    display:flex;align-items:center;justify-content:center;cursor:pointer;}
+  .t-main:active{background:var(--accent-press);}
+  .t-main .ico{width:30px;height:30px;}
+
+  .np-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+  .np-foot button,.np-foot select{
+    border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:0.76rem;
+    color:var(--text);cursor:pointer;background:none;display:flex;align-items:center;
+    justify-content:center;gap:6px;min-height:42px;
+  }
+  .np-foot button.on{border-color:var(--accent);color:var(--accent);}
+  .np-foot select{-webkit-appearance:none;appearance:none;text-align:center;
+    font-variant-numeric:tabular-nums;min-width:60px;}
+  .np-foot select option{background:var(--surface-2);color:var(--text);}
+
+  .cast-banner{display:none;background:var(--accent);color:var(--accent-ink);font-size:0.76rem;
+    font-weight:600;padding:8px 16px;text-align:center;flex-shrink:0;
+    align-items:center;justify-content:center;gap:7px;}
+  .cast-banner.on{display:flex;}
+
+  /* ---------- sheets ---------- */
+  .sheet{
+    position:fixed;inset:0;background:rgba(6,7,8,.95);-webkit-backdrop-filter:blur(9px);backdrop-filter:blur(9px);
+    z-index:60;display:none;flex-direction:column;
+    padding:calc(var(--safe-top) + 20px) 20px calc(var(--safe-bot) + 20px);
+  }
+  .sheet.open{display:flex;}
+  .sheet h3{margin:0 0 14px;font-size:1.05rem;display:flex;align-items:center;gap:9px;}
+  .qlist{flex:1;overflow-y:auto;list-style:none;margin:0;padding:0;}
+  .qlist li{display:flex;gap:11px;align-items:center;padding:12px 0;
+    border-bottom:1px solid var(--line-soft);font-size:0.85rem;}
+  .qlist li .art{width:38px;height:38px;border-radius:7px;flex-shrink:0;}
+  .qlist li span.t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .qlist li button{color:var(--dim);cursor:pointer;display:flex;padding:4px;}
+  .close-q{margin-top:14px;background:var(--surface-2);border:1px solid var(--line);
+    border-radius:11px;padding:14px;font-size:0.9rem;cursor:pointer;color:var(--text);}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+<symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4.5v15l13-7.5z" fill="currentColor"/></symbol>
+<symbol id="i-pause" viewBox="0 0 24 24"><rect x="6.5" y="4.5" width="4" height="15" rx="1.4" fill="currentColor"/><rect x="13.5" y="4.5" width="4" height="15" rx="1.4" fill="currentColor"/></symbol>
+<symbol id="i-next" viewBox="0 0 24 24"><path d="M5 4.5v15l11-7.5z" fill="currentColor"/><rect x="17.5" y="4.5" width="3" height="15" rx="1.3" fill="currentColor"/></symbol>
+<symbol id="i-back15" viewBox="0 0 24 24">
+  <g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M4.2 10.4A8.2 8.2 0 1 1 3.8 14"/><path d="M3 5.2v5.2h5.2"/></g>
+  <text x="12.4" y="16.6" font-size="8" font-weight="700" text-anchor="middle" fill="currentColor"
+        font-family="-apple-system,Roboto,Helvetica,sans-serif">15</text></symbol>
+<symbol id="i-fwd30" viewBox="0 0 24 24">
+  <g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M19.8 10.4A8.2 8.2 0 1 0 20.2 14"/><path d="M21 5.2v5.2h-5.2"/></g>
+  <text x="11.6" y="16.6" font-size="8" font-weight="700" text-anchor="middle" fill="currentColor"
+        font-family="-apple-system,Roboto,Helvetica,sans-serif">30</text></symbol>
+<symbol id="i-cast" viewBox="0 0 24 24">
+  <g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M2.5 16.6a4.9 4.9 0 0 1 4.9 4.9"/><path d="M2.5 12.4a9.1 9.1 0 0 1 9.1 9.1"/>
+    <path d="M2.5 8.2V6.4a2 2 0 0 1 2-2h15a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2h-4.8"/></g></symbol>
+<symbol id="i-airplay" viewBox="0 0 24 24">
+  <path d="M5.5 17.5H4a2 2 0 0 1-2-2V5.5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-1.5"
+        fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M12 13.2l5.2 7.3H6.8z" fill="currentColor"/></symbol>
+<symbol id="i-queue" viewBox="0 0 24 24">
+  <g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round">
+    <path d="M3.5 6.5h13"/><path d="M3.5 12h13"/><path d="M3.5 17.5h8"/>
+    <path d="M18 13.5v7"/><path d="M14.8 17h6.4"/></g></symbol>
+<symbol id="i-search" viewBox="0 0 24 24">
+  <g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round">
+    <circle cx="10.8" cy="10.8" r="6.8"/><path d="M15.8 15.8l4.4 4.4"/></g></symbol>
+<symbol id="i-download" viewBox="0 0 24 24">
+  <g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 3.5v11"/><path d="M8 10.8l4 4 4-4"/><path d="M4 17.5v1.5a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-1.5"/></g></symbol>
+<symbol id="i-plus" viewBox="0 0 24 24">
+  <g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M12 5.5v13"/><path d="M5.5 12h13"/></g></symbol>
+<symbol id="i-check" viewBox="0 0 24 24">
+  <path d="M4.5 12.5l5 5 10-11" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="i-check-circle" viewBox="0 0 24 24">
+  <g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="8.6"/><path d="M8.3 12.2l2.6 2.6 5-5.4"/></g></symbol>
+<symbol id="i-circle" viewBox="0 0 24 24">
+  <circle cx="12" cy="12" r="8.6" fill="none" stroke="currentColor" stroke-width="1.9"/></symbol>
+<symbol id="i-x" viewBox="0 0 24 24">
+  <g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M6 6l12 12"/><path d="M18 6L6 18"/></g></symbol>
+<symbol id="i-back" viewBox="0 0 24 24">
+  <path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="i-newest" viewBox="0 0 24 24">
+  <g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M6 3.5v17"/><path d="M2.8 17.3L6 20.5l3.2-3.2"/>
+    <path d="M13 5.5h8"/><path d="M13 10.5h6"/><path d="M13 15.5h4"/><path d="M13 20.5h2.5"/></g></symbol>
+<symbol id="i-oldest" viewBox="0 0 24 24">
+  <g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M6 20.5v-17"/><path d="M2.8 6.7L6 3.5l3.2 3.2"/>
+    <path d="M13 5.5h2.5"/><path d="M13 10.5h4"/><path d="M13 15.5h6"/><path d="M13 20.5h8"/></g></symbol>
+<symbol id="i-person" viewBox="0 0 24 24">
+  <g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="8" r="4"/><path d="M4.5 20.5a7.5 7.5 0 0 1 15 0"/></g></symbol>
+<symbol id="i-sync" viewBox="0 0 24 24">
+  <g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M20.5 12a8.5 8.5 0 0 1-14.6 5.9"/><path d="M3.5 12A8.5 8.5 0 0 1 18.1 6.1"/>
+    <path d="M18.5 2.5v4h-4"/><path d="M5.5 21.5v-4h4"/></g></symbol>
+<symbol id="i-reorder" viewBox="0 0 24 24">
+  <g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M7 3.5v17"/><path d="M4 6.5L7 3.5l3 3"/><path d="M4 17.5l3 3 3-3"/>
+    <path d="M14 7h6.5"/><path d="M14 12h6.5"/><path d="M14 17h6.5"/></g></symbol>
+<symbol id="i-grip" viewBox="0 0 24 24">
+  <g fill="currentColor">
+    <circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/>
+    <circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/>
+    <circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></g></symbol>
+<symbol id="i-playlist" viewBox="0 0 24 24">
+  <g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3.5 6.5h11"/><path d="M3.5 12h11"/><path d="M3.5 17.5h7"/></g>
+  <path d="M15.5 13.5v7l5.5-3.5z" fill="currentColor"/></symbol>
+<symbol id="i-clock" viewBox="0 0 24 24">
+  <g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="8.6"/><path d="M12 7v5.4l3.4 2"/></g></symbol>
+<symbol id="i-trash" viewBox="0 0 24 24">
+  <g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3.5 6h17"/><path d="M8.5 6V4.4a1.4 1.4 0 0 1 1.4-1.4h4.2a1.4 1.4 0 0 1 1.4 1.4V6"/>
+    <path d="M6 6l1 13.2a1.8 1.8 0 0 0 1.8 1.7h6.4a1.8 1.8 0 0 0 1.8-1.7L18 6"/></g></symbol>
+<symbol id="i-reel" viewBox="0 0 24 24">
+  <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.9"/>
+  <circle cx="12" cy="12" r="2.6" fill="currentColor"/>
+  <g stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+    <path d="M12 3.2v5.4"/><path d="M19.8 16.5l-4.7-2.7"/><path d="M4.2 16.5l4.7-2.7"/></g></symbol>
+<symbol id="i-mic" viewBox="0 0 24 24">
+  <g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="9" y="2.5" width="6" height="11" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0"/><path d="M12 18v3.5"/></g></symbol>
+</svg>
+
+<div class="app">
+  <div class="topbar">
+    <button class="icon-btn plain hidden" id="backBtn" aria-label="Back"><svg class="ico"><use href="#i-back"/></svg></button>
+    <div class="title-slot">
+      <h1 class="wordmark" id="wordmark"><svg class="mark"><use href="#i-reel"/></svg>Spindle</h1>
+      <h1 class="view-title hidden" id="viewTitle"></h1>
+    </div>
+    <div class="topbar-actions">
+      <button class="icon-btn" id="searchNavBtn" aria-label="Search podcasts"><svg class="ico"><use href="#i-search"/></svg></button>
+      <button class="icon-btn hidden" id="castBtn" aria-label="Cast"><svg class="ico"><use href="#i-cast"/></svg></button>
+      <button class="icon-btn hidden" id="airplayBtn" aria-label="AirPlay"><svg class="ico"><use href="#i-airplay"/></svg></button>
+      <button class="icon-btn hidden" id="refreshBtn" aria-label="Check for new episodes"><svg class="ico"><use href="#i-sync"/></svg></button>
+      <button class="icon-btn hidden" id="reorderBtn" aria-label="Rearrange shows"><svg class="ico"><use href="#i-reorder"/></svg></button>
+      <button class="icon-btn" id="profileBtn" aria-label="Profile and sync">
+        <svg class="ico"><use href="#i-person"/></svg>
+        <span class="sync-dot off" id="syncDot"></span>
+      </button>
+      <button class="icon-btn" id="queueBtn" aria-label="Queue"><svg class="ico"><use href="#i-queue"/></svg></button>
+      <button class="icon-btn hidden" id="delListBtn" aria-label="Playlist options"><svg class="ico"><use href="#i-trash"/></svg></button>
+      <button class="icon-btn hidden" id="unsubBtn" aria-label="Unsubscribe"><svg class="ico"><use href="#i-trash"/></svg></button>
+    </div>
+  </div>
+
+  <div class="cast-banner" id="castBanner">
+    <svg class="ico ico-sm"><use href="#i-cast"/></svg>
+    <span>Playing on <span id="castDevice">TV</span></span>
+  </div>
+
+  <div class="scroller" id="scroller"></div>
+
+  <div class="mini" id="mini">
+    <div class="mini-bar" id="miniBar"></div>
+    <img class="art" id="miniArt" alt="">
+    <div style="flex:1;min-width:0">
+      <div class="mini-title" id="miniTitle">—</div>
+      <div class="mini-sub" id="miniSub"></div>
+    </div>
+    <button class="mini-btn" id="miniPlay" aria-label="Play or pause"><svg class="ico ico-lg"><use href="#i-play"/></svg></button>
+  </div>
+</div>
+
+<div class="np" id="np">
+  <button class="np-grip" id="npGrip" aria-label="Close"></button>
+  <div class="np-art">
+    <div class="art-wrap">
+      <img class="art" id="npArt" alt="">
+      <svg class="art-ring" viewBox="0 0 300 300" aria-hidden="true">
+        <rect class="rbg" x="6" y="6" width="288" height="288" rx="30"/>
+        <rect class="rfg" id="artRing" x="6" y="6" width="288" height="288" rx="30"/>
+      </svg>
+    </div>
+  </div>
+
+  <h2 class="np-title" id="npTitle">—</h2>
+  <p class="np-show" id="npShow"></p>
+
+  <input type="range" id="scrubBar" min="0" max="1000" value="0" step="1" aria-label="Seek">
+  <div class="times"><span id="tCur">0:00</span><span id="tDur">0:00</span></div>
+
+  <div class="transport">
+    <button class="t-btn" id="back15" aria-label="Back 15 seconds"><svg class="ico"><use href="#i-back15"/></svg></button>
+    <button class="t-main" id="mainPlay" aria-label="Play or pause"><svg class="ico"><use href="#i-play"/></svg></button>
+    <button class="t-btn" id="fwd30" aria-label="Forward 30 seconds"><svg class="ico"><use href="#i-fwd30"/></svg></button>
+  </div>
+
+  <div class="np-foot">
+    <select id="rateSel" aria-label="Playback speed">
+      <option value="0.8">0.8×</option><option value="1" selected>1×</option>
+      <option value="1.2">1.2×</option><option value="1.5">1.5×</option>
+      <option value="1.8">1.8×</option><option value="2">2×</option>
+    </select>
+    <button id="markPlayedBtn" aria-label="Toggle played"><svg class="ico ico-sm"><use href="#i-circle"/></svg>Played</button>
+    <button id="npCastBtn" class="hidden" aria-label="Cast"><svg class="ico ico-sm"><use href="#i-cast"/></svg></button>
+    <button id="nextBtn" aria-label="Next"><svg class="ico ico-sm"><use href="#i-next"/></svg>Next</button>
+  </div>
+</div>
+
+<div class="gate" id="gate">
+  <div class="gate-box">
+    <svg class="gate-mark"><use href="#i-reel"/></svg>
+    <h2 id="gateTitle">Sign in</h2>
+    <p class="gate-sub" id="gateSub">Your shows and listening history live on your server.</p>
+    <input type="text" id="gateToken" placeholder="Setup code" class="hidden"
+           autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="40">
+    <input type="text" id="gateName" placeholder="Name" autocomplete="username"
+           autocapitalize="words" spellcheck="false" maxlength="40">
+    <input type="password" id="gatePass" placeholder="Password" autocomplete="current-password">
+    <input type="password" id="gatePass2" placeholder="Confirm password" autocomplete="new-password" class="hidden">
+    <div class="gate-err hidden" id="gateErr"></div>
+    <button class="gate-go" id="gateGo">Sign in</button>
+    <button class="gate-alt" id="gateLocal">Use this device without an account</button>
+  </div>
+</div>
+
+<div class="sheet" id="addSheet">
+  <h3><svg class="ico ico-sm"><use href="#i-plus"/></svg>Add to</h3>
+  <div id="addBody" style="flex:1;overflow-y:auto"></div>
+  <button class="close-q" id="closeAdd">Cancel</button>
+</div>
+
+<div class="sheet" id="profileSheet">
+  <h3><svg class="ico ico-sm"><use href="#i-person"/></svg>Profile</h3>
+  <div id="profileBody" style="flex:1;overflow-y:auto"></div>
+  <button class="close-q" id="closeP">Done</button>
+</div>
+
+<div class="sheet" id="queueSheet">
+  <h3><svg class="ico ico-sm"><use href="#i-queue"/></svg>Up next</h3>
+  <ul class="qlist" id="qList"></ul>
+  <div class="msg" id="qEmpty" style="padding:36px 0">
+    <svg class="ico msg-ico"><use href="#i-queue"/></svg>
+    Nothing queued yet. Tap Queue on any episode.
+  </div>
+  <button class="close-q" id="closeQ">Done</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<audio id="audio" preload="metadata" x-webkit-airplay="allow"></audio>
+
+<script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
+<script>
+(function(){
+'use strict';
+
+var K={feeds:'sp_feeds_v2',prog:'sp_prog_v2',queue:'sp_queue_v2',rate:'sp_rate_v2',
+       sort:'sp_sort_v2',filter:'sp_filter_v2',
+       tombs:'sp_tombs_v1',qu:'sp_qu_v1',profile:'sp_profile_v1',
+       lists:'sp_lists_v1'};
+
+/* Which profile is selected is the one thing shared by the whole device.
+   Everything else is stored per profile, so two people on one phone never
+   see each other's shows. */
+var GLOBAL_KEYS={'sp_profile_v1':1,'sp_local_only_v1':1};
+var profile=null;   /* set immediately below, before any namespaced read */
+function nk(k){return GLOBAL_KEYS[k]?k:(k+'::'+(profile||'local'));}
+function load(k,d){try{var v=JSON.parse(localStorage.getItem(nk(k)));return (v===null||v===undefined)?d:v;}catch(e){return d;}}
+function save(k,v){try{localStorage.setItem(nk(k),JSON.stringify(v));}catch(e){}}
+
+profile=(function(){try{return JSON.parse(localStorage.getItem(K.profile));}catch(e){return null;}})();
+
+/* one-time move of pre-namespace data into whichever profile is active */
+(function migrate(){
+  ['sp_feeds_v2','sp_prog_v2','sp_queue_v2','sp_rate_v2','sp_sort_v2','sp_filter_v2',
+   'sp_tombs_v1','sp_qu_v1','sp_rate_u','sp_sort_u','sp_filter_u'].forEach(function(k){
+    var v=localStorage.getItem(k);
+    if(v===null)return;
+    if(localStorage.getItem(nk(k))===null)localStorage.setItem(nk(k),v);
+    localStorage.removeItem(k);
+  });
+})();
+
+var feeds=load(K.feeds,[]), progress=load(K.prog,{}), queue=load(K.queue,[]), rate=load(K.rate,1);
+var view='library', showUrl=null, listId=null, current=null, scrubbing=false;
+var lastShowChecked=null, lastRefresh=0;
+
+/* brief message at the bottom of the screen, for things that need
+   acknowledging but not a whole screen of their own */
+var toastTimer=null;
+function setStatusToast(msg){
+  var t=$('toast');
+  if(!t)return;
+  t.textContent=msg;
+  t.classList.add('on');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(function(){t.classList.remove('on');},2600);
+}
+var filter=load(K.filter,'all'), sort=load(K.sort,'newest');
+var tombs=load(K.tombs,{});            /* url -> ts of unsubscribe */
+var lists=load(K.lists,{});            /* id -> {id,name,items,u,removed} */
+var queueU=load(K.qu,0);               /* when the queue last changed here */
+var syncState='off', syncMsg='', syncTimer=null, syncing=false;
+var searchResults=[], searchState='idle', searchTerm='', searchMsg='';
+
+var $=function(id){return document.getElementById(id);};
+var audio=$('audio'), scroller=$('scroller');
+function esc(s){return (s||'').replace(/[&<>"']/g,function(c){
+  return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function icon(n,c){return '<svg class="ico '+(c||'')+'"><use href="#i-'+n+'"/></svg>';}
+
+function fmt(s){
+  if(!s||!isFinite(s))return '0:00';
+  s=Math.max(0,Math.floor(s));
+  var h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60;
+  return h?h+':'+String(m).padStart(2,'0')+':'+String(x).padStart(2,'0'):m+':'+String(x).padStart(2,'0');
+}
+function fmtDate(d){var t=new Date(d);return isNaN(t)?'':t.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'});}
+function parseDur(r){
+  if(!r)return null;
+  if(/^\d+$/.test(r))return +r;
+  var p=r.split(':').map(Number);
+  if(p.length===3)return p[0]*3600+p[1]*60+p[2];
+  if(p.length===2)return p[0]*60+p[1];
+  return null;
+}
+function prog(g){return progress[g]||{pos:0,dur:0,played:false,u:0};}
+function setProg(g,p){
+  p=Object.assign({},p);
+  p.u=Date.now();                      /* every change is timestamped for merge */
+  progress[g]=Object.assign(prog(g),p);
+  save(K.prog,progress);
+  schedulePush();
+}
+function feedOf(u){for(var i=0;i<feeds.length;i++)if(feeds[i].url===u)return feeds[i];return null;}
+
+/* art element (with graceful placeholder) */
+function artTag(src,cls){
+  if(src)return '<img class="art '+(cls||'')+'" loading="lazy" alt="" src="'+esc(src)+'"'+
+    ' onerror="this.replaceWith(document.querySelector(\'#artPhTpl\').content.cloneNode(true))">';
+  return '<div class="art art-ph '+(cls||'')+'">'+icon('mic')+'</div>';
+}
+
+/* ================= podcast search (iTunes, via JSONP) ================= */
+function jsonp(url){
+  return new Promise(function(resolve,reject){
+    var cb='spcb_'+Math.random().toString(36).slice(2);
+    var s=document.createElement('script');
+    var timer=setTimeout(function(){done();reject(new Error('timed out'));},12000);
+    function done(){clearTimeout(timer);try{delete window[cb];}catch(e){window[cb]=undefined;}
+      if(s.parentNode)s.parentNode.removeChild(s);}
+    window[cb]=function(data){done();resolve(data);};
+    s.onerror=function(){done();reject(new Error('network error'));};
+    s.src=url+(url.indexOf('?')<0?'?':'&')+'callback='+cb;
+    document.head.appendChild(s);
+  });
+}
+function searchPodcasts(term){
+  var base='https://itunes.apple.com/search?media=podcast&entity=podcast&limit=25&term='+encodeURIComponent(term);
+  /* our own server first; JSONP is the fallback for running without a backend */
+  return fetch(API+'/search?term='+encodeURIComponent(term))
+    .then(function(r){if(!r.ok)throw new Error('no server search');return r.json();})
+    .then(function(d){return d.results||[];})
+    .catch(function(){
+      return jsonp(base).then(function(d){return d.results||[];})
+        .catch(function(){
+          return fetch('https://api.allorigins.win/raw?url='+encodeURIComponent(base))
+            .then(function(r){return r.json();}).then(function(d){return d.results||[];});
+        });
+    });
+}
+
+/* ================= feeds ================= */
+function fetchFeed(url){
+  /* Our own server first - no CORS, no third party. Then a direct attempt
+     (works for the few hosts that send CORS headers), then public proxies
+     as a last resort for when the app is served without a backend. */
+  var tries=[
+    {label:'your server', url:API+'/feed?url='+encodeURIComponent(url)},
+    {label:'direct',      url:url},
+    {label:'allorigins',  url:'https://api.allorigins.win/raw?url='+encodeURIComponent(url)},
+    {label:'corsproxy',   url:'https://corsproxy.io/?'+encodeURIComponent(url)}
+  ];
+  var reasons=[], i=0;
+  function attempt(){
+    if(i>=tries.length){
+      /* The first attempt is our own server, and it is the only one that can
+         explain *why* - the cross-origin fallbacks can only ever report a
+         generic "failed to fetch". So lead with that, and keep the rest quiet. */
+      var first=reasons[0]||'unreachable';
+      if(/^your server: /.test(first))first=first.replace(/^your server: /,'');
+      return Promise.reject(new Error(first));
+    }
+    var t=tries[i++];
+    return fetch(t.url).then(function(r){
+      return r.text().then(function(body){
+        if(!r.ok){
+          var why='HTTP '+r.status;
+          try{var j=JSON.parse(body);if(j.error)why=j.error;}catch(e){}
+          throw new Error(why);
+        }
+        if(!/<rss|<feed|<channel/i.test(body))throw new Error('not a podcast feed');
+        return body;
+      });
+    }).catch(function(e){
+      reasons.push(t.label+': '+(e.message||'unreachable'));
+      return attempt();
+    });
+  }
+  return attempt();
+}
+function txt(node,sel){var e=node.querySelector(sel);return e?e.textContent.trim():'';}
+function nsAttr(node,tag,attr){
+  var e=node.getElementsByTagNameNS('*',tag)[0];
+  return e?e.getAttribute(attr):'';
+}
+function parseFeed(xml,url,fallbackArt){
+  var doc=new DOMParser().parseFromString(xml,'text/xml');
+  if(doc.querySelector('parsererror'))throw new Error('Not valid RSS');
+  var ch=doc.querySelector('channel');
+  if(!ch)throw new Error('No podcast found in that feed');
+
+  var title=txt(ch,'title')||url;
+  var author=nsAttr(ch,'author','href')||txt(ch,'managingEditor')||'';
+  var itunesAuthor=ch.getElementsByTagNameNS('*','author')[0];
+  if(itunesAuthor)author=itunesAuthor.textContent.trim();
+
+  var image=nsAttr(ch,'image','href');
+  if(!image){var im=ch.querySelector('image > url');if(im)image=im.textContent.trim();}
+  if(!image)image=fallbackArt||'';
+
+  var items=Array.from(ch.querySelectorAll('item'));
+  var eps=items.map(function(it,i){
+    var enc=it.querySelector('enclosure');
+    var d=it.getElementsByTagNameNS('*','duration')[0];
+    var epImg=nsAttr(it,'image','href')||image;
+    return {
+      guid:txt(it,'guid')||(enc&&enc.getAttribute('url'))||url+'#'+i,
+      title:txt(it,'title')||'Untitled',
+      date:txt(it,'pubDate'),
+      dur:parseDur(d&&d.textContent.trim()),
+      url:(enc&&enc.getAttribute('url'))||'',
+      image:epImg, show:title, feedUrl:url
+    };
+  }).filter(function(e){return e.url;});
+
+  return {url:url,title:title,author:author,image:image,episodes:eps};
+}
+
+function addFeed(url,meta){
+  if(feedOf(url))return Promise.resolve(feedOf(url));
+  return fetchFeed(url).then(function(x){
+    var f=parseFeed(x,url,meta&&meta.image);
+    if(meta&&meta.image&&!f.image)f.image=meta.image;
+    if(meta&&meta.author&&!f.author)f.author=meta.author;
+    f.u=Date.now();
+    if(tombs[url]){delete tombs[url];save(K.tombs,tombs);}
+    feeds.unshift(f);save(K.feeds,feeds);
+    schedulePush();
+    return f;
+  });
+}
+function refreshFeed(url){
+  var old=feedOf(url);
+  if(!old)return Promise.resolve(0);
+  var before=(old.episodes||[]).length;
+  return fetchFeed(url).then(function(x){
+    var f=parseFeed(x,url,old.image);
+    /* look the feed up again by url rather than trusting an index captured
+       earlier - the array can be rebuilt underneath us by a sync or an
+       account switch while this fetch is in flight */
+    var i=feeds.findIndex(function(z){return z.url===url;});
+    if(i<0)return 0;
+    f.u=feeds[i].u||Date.now();
+    feeds[i]=f;save(K.feeds,feeds);
+    if(view==='show'&&showUrl===url)render();
+    if(view==='library')render();
+    return Math.max(0,(f.episodes||[]).length-before);
+  }).catch(function(){return 0;});
+}
+
+/* Check every subscription for new episodes. */
+function refreshAll(){
+  var urls=feeds.map(function(f){return f.url;});
+  return Promise.all(urls.map(refreshFeed)).then(function(counts){
+    return counts.reduce(function(a,b){return a+b;},0);
+  });
+}
+
+/* ================= navigation ================= */
+function go(v,arg){
+  view=v;
+  if(v==='show')showUrl=arg;
+  if(v==='list')listId=arg;
+  scroller.scrollTop=0;
+  render();
+}
+function render(){
+  if(view!=='library')reordering=false;
+  $('backBtn').classList.toggle('hidden',view==='library');
+  $('wordmark').classList.toggle('hidden',view!=='library');
+  $('viewTitle').classList.toggle('hidden',view==='library');
+  $('searchNavBtn').classList.toggle('hidden',view==='search');
+  $('unsubBtn').classList.toggle('hidden',view!=='show');
+  $('refreshBtn').classList.toggle('hidden',!(view==='library'&&feeds.length>0));
+  $('reorderBtn').classList.toggle('hidden',!(view==='library'&&feeds.length>1));
+  $('reorderBtn').classList.toggle('on',reordering);
+  $('reorderBtn').setAttribute('aria-label',reordering?'Done rearranging':'Rearrange shows');
+  $('reorderBtn').querySelector('use').setAttribute('href',reordering?'#i-check':'#i-reorder');
+  if(view==='search')$('viewTitle').textContent='Find a podcast';
+  if(view==='lists')$('viewTitle').textContent='Playlists';
+  if(view==='list'){var l=lists[listId];$('viewTitle').textContent=(l&&!l.removed)?l.name:'Playlist';}
+  if(view==='show'){var f=feedOf(showUrl);$('viewTitle').textContent=f?f.title:'';}
+  $('delListBtn').classList.toggle('hidden',view!=='list');
+
+  if(view==='library')renderLibrary();
+  else if(view==='search')renderSearch();
+  else if(view==='lists')renderLists();
+  else if(view==='list')renderList();
+  else renderShow();
+}
+
+/* ---- library ---- */
+var reordering=false;
+
+function renderLibrary(){
+  if(!feeds.length){
+    scroller.innerHTML='<div class="msg">'+icon('mic','msg-ico')+
+      '<strong>Your shelf is empty</strong>Search for a podcast by name and it will show up here with its cover art.'+
+      '<div><button class="cta" id="emptySearch">'+icon('search','ico-sm')+'Find a podcast</button></div></div>';
+    $('emptySearch').onclick=function(){go('search');};
+    return;
+  }
+  var html='';
+  if(reordering)
+    html+='<div class="reorder-hint">'+icon('grip','ico-sm')+
+      '<span>Drag the covers into the order you want, then tap Done.</span></div>';
+
+  html+='<div class="grid'+(reordering?' reordering':'')+'" id="libGrid">';
+  feeds.forEach(function(f){
+    var unp=f.episodes.filter(function(e){return !prog(e.guid).played;}).length;
+    html+='<button class="tile" data-url="'+esc(f.url)+'">'+
+      artTag(f.image)+
+      '<span class="grip">'+icon('grip','ico-sm')+'</span>'+
+      '<div class="name">'+esc(f.title)+'</div>'+
+      '<div class="cnt">'+(unp?'<span class="dot"></span>'+unp+' new':f.episodes.length+' episodes')+'</div>'+
+      '</button>';
+  });
+  html+='</div>';
+  scroller.innerHTML=html;
+
+  if(reordering)wireDrag();
+  else Array.prototype.forEach.call(scroller.querySelectorAll('.tile'),function(t){
+    t.onclick=function(){go('show',t.getAttribute('data-url'));};
+  });
+}
+
+/*
+ * Pointer events rather than HTML5 drag-and-drop, because the latter simply
+ * does not fire on touchscreens. The array and the DOM are moved together as
+ * you drag, so what you see is the order that gets saved.
+ */
+function wireDrag(){
+  var grid=$('libGrid');
+  if(!grid)return;
+  var dragEl=null, startX=0, startY=0, moved=false;
+
+  function indexOfEl(el){
+    return Array.prototype.indexOf.call(grid.children, el);
+  }
+
+  Array.prototype.forEach.call(grid.children, function(tile){
+    tile.onclick=function(e){e.preventDefault();};   /* no navigation while reordering */
+
+    tile.addEventListener('pointerdown', function(e){
+      dragEl=tile; moved=false;
+      startX=e.clientX; startY=e.clientY;
+      tile.setPointerCapture(e.pointerId);
+      tile.classList.add('dragging');
+    });
+
+    tile.addEventListener('pointermove', function(e){
+      if(!dragEl)return;
+      if(!moved && Math.abs(e.clientX-startX)<6 && Math.abs(e.clientY-startY)<6)return;
+      moved=true;
+
+      /* which tile is under the finger right now? */
+      dragEl.style.pointerEvents='none';
+      var under=document.elementFromPoint(e.clientX,e.clientY);
+      dragEl.style.pointerEvents='';
+      var target=under&&under.closest?under.closest('.tile'):null;
+      if(!target||target===dragEl||target.parentNode!==grid)return;
+
+      var from=indexOfEl(dragEl), to=indexOfEl(target);
+      if(from<0||to<0)return;
+
+      /* move the DOM node... */
+      if(from<to)grid.insertBefore(dragEl,target.nextSibling);
+      else grid.insertBefore(dragEl,target);
+      /* ...and keep the data in lockstep */
+      feeds.splice(to,0,feeds.splice(from,1)[0]);
+    });
+
+    function finish(e){
+      if(!dragEl)return;
+      dragEl.classList.remove('dragging');
+      try{dragEl.releasePointerCapture(e.pointerId);}catch(err){}
+      dragEl=null;
+      if(moved)commitOrder();
+    }
+    tile.addEventListener('pointerup',finish);
+    tile.addEventListener('pointercancel',finish);
+  });
+}
+
+/* Stamp every feed so the new order beats whatever other devices hold. */
+function commitOrder(){
+  var now=Date.now();
+  feeds.forEach(function(f){f.u=now;});
+  save(K.feeds,feeds);
+  schedulePush();
+}
+
+/* ---- search ---- */
+function renderSearch(){
+  var html=
+    '<div class="search-row">'+
+      '<div class="field">'+icon('search')+
+        '<input type="text" id="qInput" placeholder="Search by show name" '+
+        'autocomplete="off" autocapitalize="off" spellcheck="false" value="'+esc(searchTerm)+'">'+
+      '</div>'+
+      '<button class="go" id="goBtn">Search</button>'+
+    '</div>';
+
+  if(searchMsg)html+='<div class="hint'+(searchState==='error'?' err':'')+'">'+esc(searchMsg)+'</div>';
+
+  if(searchState==='loading'){
+    html+='<div class="spinner"></div>';
+  }else if(searchState==='done'&&!searchResults.length){
+    html+='<div class="msg">No shows matched that. Try fewer words, or paste an RSS feed URL instead.</div>';
+  }else if(searchState==='idle'&&!searchResults.length){
+    html+='<div class="msg">'+icon('search','msg-ico')+
+      'Type a show name to search the Apple Podcasts directory. You can also paste an RSS feed URL here directly.</div>';
+  }else{
+    searchResults.forEach(function(r,i){
+      var subbed=!!feedOf(r.feedUrl);
+      html+='<div class="res">'+artTag(r.artworkUrl600||r.artworkUrl100)+
+        '<div class="rb"><p class="rn">'+esc(r.collectionName)+'</p>'+
+        '<div class="ra">'+esc(r.artistName||'')+(r.trackCount?' · '+r.trackCount+' episodes':'')+'</div></div>'+
+        '<button class="sub-btn'+(subbed?' on':'')+'" data-i="'+i+'">'+
+        icon(subbed?'check':'plus','ico-sm')+(subbed?'Added':'Add')+'</button></div>';
+    });
+  }
+  scroller.innerHTML=html;
+
+  var input=$('qInput');
+  $('goBtn').onclick=function(){runSearch(input.value.trim());};
+  input.onkeydown=function(e){if(e.key==='Enter'){e.preventDefault();runSearch(input.value.trim());}};
+  Array.prototype.forEach.call(scroller.querySelectorAll('.sub-btn'),function(b){
+    b.onclick=function(){
+      var r=searchResults[+b.getAttribute('data-i')];
+      if(!r||feedOf(r.feedUrl))return;
+      b.innerHTML=icon('clock','ico-sm')+'Adding';
+      addFeed(r.feedUrl,{image:r.artworkUrl600||r.artworkUrl100,author:r.artistName})
+        .then(function(){b.className='sub-btn on';b.innerHTML=icon('check','ico-sm')+'Added';})
+        .catch(function(e){b.innerHTML=icon('x','ico-sm')+'Failed';
+          searchMsg='Could not load that feed: '+e.message;});
+    };
+  });
+  if(searchState==='idle'&&!searchResults.length)setTimeout(function(){input.focus();},60);
+}
+
+function runSearch(term){
+  if(!term)return;
+  searchTerm=term;
+  /* paste an RSS URL straight in and we just subscribe to it */
+  if(/^https?:\/\//i.test(term)){
+    searchState='loading';searchMsg='Loading that feed…';renderSearch();
+    addFeed(term).then(function(f){
+      searchState='idle';searchResults=[];searchTerm='';searchMsg='';
+      go('show',f.url);
+    }).catch(function(e){
+      searchState='error';searchMsg='Could not load that feed: '+e.message;renderSearch();
+    });
+    return;
+  }
+  searchState='loading';searchMsg='';renderSearch();
+  searchPodcasts(term).then(function(res){
+    searchResults=res.filter(function(r){return r.feedUrl;});
+    searchState='done';
+    searchMsg=searchResults.length?searchResults.length+' shows found':'';
+    renderSearch();
+  }).catch(function(e){
+    searchState='error';searchResults=[];
+    searchMsg='Search is unreachable right now. You can still paste an RSS feed URL above.';
+    renderSearch();
+  });
+}
+
+/* ---- show ---- */
+function renderShow(){
+  var feed=feedOf(showUrl);
+  if(!feed){go('library');return;}
+  /* opening a show is a good moment to look for new episodes */
+  if(showUrl!==lastShowChecked){lastShowChecked=showUrl;refreshFeed(showUrl);}
+  var played=feed.episodes.filter(function(e){return prog(e.guid).played;}).length;
+
+  var html='<div class="show-head">'+artTag(feed.image)+
+    '<div class="sh-b"><h2>'+esc(feed.title)+'</h2>'+
+    (feed.author?'<p class="auth">'+esc(feed.author)+'</p>':'')+
+    '<div class="stat">'+played+' of '+feed.episodes.length+' played</div></div></div>'+
+    '<div class="filter-row"><div class="f-chips">'+
+      '<button data-f="all" class="'+(filter==='all'?'on':'')+'">All</button>'+
+      '<button data-f="unplayed" class="'+(filter==='unplayed'?'on':'')+'">Unplayed</button>'+
+      '<button data-f="played" class="'+(filter==='played'?'on':'')+'">Played</button>'+
+      '<button data-f="progress" class="'+(filter==='progress'?'on':'')+'">In progress</button>'+
+    '</div>'+
+    '<button class="sort-btn" id="sortBtn">'+icon(sort==='oldest'?'oldest':'newest')+
+      (sort==='oldest'?'Oldest':'Newest')+'</button>'+
+    '</div><div class="f-count" id="fCount"></div><div id="epList"></div>';
+  scroller.innerHTML=html;
+  Array.prototype.forEach.call(scroller.querySelectorAll('.f-chips button'),function(b){
+    b.onclick=function(){
+      filter=b.getAttribute('data-f');save(K.filter,filter);save('sp_filter_u',Date.now());schedulePush();renderShow();
+    };
+  });
+  $('sortBtn').onclick=function(){
+    sort=(sort==='newest')?'oldest':'newest';save(K.sort,sort);save('sp_sort_u',Date.now());schedulePush();renderShow();
+  };
+  renderEpisodes(feed);
+}
+
+function renderEpisodes(feed){
+  var list=$('epList');
+  if(!list)return;
+  var eps=feed.episodes.filter(function(ep){
+    var p=prog(ep.guid);
+    if(filter==='unplayed')return !p.played;
+    if(filter==='played')return p.played;
+    if(filter==='progress')return p.pos>30&&!p.played;
+    return true;
+  });
+
+  /* sort by publish date; feeds without usable dates fall back to feed order,
+     which is newest-first by RSS convention */
+  var order={};
+  feed.episodes.forEach(function(e,i){order[e.guid]=i;});
+  function stamp(e){var t=Date.parse(e.date);return isNaN(t)?null:t;}
+  eps.sort(function(a,b){
+    var ta=stamp(a),tb=stamp(b);
+    if(ta!==null&&tb!==null&&ta!==tb)return sort==='oldest'?ta-tb:tb-ta;
+    return sort==='oldest'?order[b.guid]-order[a.guid]:order[a.guid]-order[b.guid];
+  });
+
+  var cnt=$('fCount');
+  if(cnt){
+    var labels={all:'episodes',unplayed:'unplayed',played:'played',progress:'in progress'};
+    cnt.textContent=eps.length+' '+labels[filter]+' · '+(sort==='oldest'?'oldest first':'newest first');
+  }
+
+  if(!eps.length){
+    var empties={
+      unplayed:'You have played everything in this show.',
+      played:'Nothing played yet from this show.',
+      progress:'No half-finished episodes here.'
+    };
+    list.innerHTML='<div class="msg">'+(empties[filter]||'Nothing matches that filter.')+'</div>';
+    return;
+  }
+
+  list.innerHTML='';
+  var C=2*Math.PI*21.5;
+  eps.forEach(function(ep){
+    var p=prog(ep.guid), total=p.dur||ep.dur||0;
+    var pct=total?Math.min(1,p.pos/total):0;
+    var isCur=current&&current.guid===ep.guid;
+    var inQ=queue.some(function(q){return q.guid===ep.guid;});
+    var inAny=inQ||liveLists().some(function(l){return listHas(l.id,ep.guid);});
+    var glyph=(isCur&&!isPaused())?'pause':'play';
+
+    var row=document.createElement('div');
+    row.className='ep'+(p.played?' played':'');
+    row.innerHTML=
+      '<button class="ep-play'+(isCur?' current':'')+'" aria-label="Play">'+
+        ((pct>0.01&&!p.played)?'<svg class="ep-ring" viewBox="0 0 46 46"><circle cx="23" cy="23" r="21.5" stroke-dasharray="'+C+'" stroke-dashoffset="'+(C*(1-pct))+'"/></svg>':'')+
+        icon(glyph)+'</button>'+
+      '<div class="ep-body"><p class="ep-title">'+esc(ep.title)+'</p>'+
+        '<div class="ep-sub">'+
+          (ep.date?'<span>'+fmtDate(ep.date)+'</span>':'')+
+          (total?'<span>'+fmt(total)+'</span>':'')+
+          (p.played?'<span class="badge">'+icon('check','ico-sm')+'played</span>'
+            :(pct>0.01?'<span class="badge">'+icon('clock','ico-sm')+fmt(total-p.pos)+' left</span>':''))+
+        '</div>'+
+        '<div class="ep-actions">'+
+          '<button class="q-btn'+(inAny?' on':'')+'">'+icon(inAny?'check':'plus','ico-sm')+'Add</button>'+
+          '<button class="p-btn'+(p.played?' on':'')+'">'+icon(p.played?'check-circle':'circle','ico-sm')+(p.played?'Played':'Mark played')+'</button>'+
+          '<button class="d-btn">'+icon('download','ico-sm')+'Save</button>'+
+        '</div></div>';
+
+    row.querySelector('.ep-play').onclick=function(){isCur?togglePlay():playEpisode(ep);};
+    row.querySelector('.q-btn').onclick=function(){openAddSheet(ep);};
+    row.querySelector('.p-btn').onclick=function(){
+      setProg(ep.guid,{played:!p.played,pos:p.played?0:(p.dur||ep.dur||0)});
+      renderShow();
+    };
+    row.querySelector('.d-btn').onclick=function(){
+      var a=document.createElement('a');
+      a.href=ep.url;a.download='';a.target='_blank';a.rel='noopener';
+      document.body.appendChild(a);a.click();a.remove();
+    };
+    list.appendChild(row);
+  });
+}
+
+function renderQueue(){
+  var ul=$('qList');ul.innerHTML='';
+  $('qEmpty').style.display=queue.length?'none':'block';
+  queue.forEach(function(ep,i){
+    var li=document.createElement('li');
+    li.innerHTML=artTag(ep.image)+'<span class="t">'+esc(ep.title)+'</span>'+
+      '<button aria-label="Remove">'+icon('x','ico-sm')+'</button>';
+    li.querySelector('button').onclick=function(){
+      queue.splice(i,1);saveQueue();renderQueue();
+      if(view==='show')renderShow();
+    };
+    ul.appendChild(li);
+  });
+}
+
+/* ================= sync ================= */
+/*
+ * Same origin as the app, so no CORS and no config to type. Every syncable
+ * value carries `u` (when it last changed here); the server keeps whichever
+ * side is newer, per key. Two devices touching different episodes both win.
+ */
+var API='./api';
+
+function setSync(state,msg){
+  syncState=state;syncMsg=msg||'';
+  var d=$('syncDot');
+  if(d){
+    d.className='sync-dot '+state;
+    d.title=msg||state;
+  }
+  var s=$('syncStatus');
+  if(s)s.textContent=msg||'';
+}
+
+function buildPayload(){
+  var f={};
+  feeds.forEach(function(x,i){
+    f[x.url]={url:x.url,title:x.title,author:x.author||'',image:x.image||'',
+              order:i,removed:false,u:x.u||0};
+  });
+  Object.keys(tombs).forEach(function(url){
+    if(!f[url]||tombs[url]>f[url].u)f[url]={url:url,removed:true,u:tombs[url]};
+  });
+  return {
+    feeds:f,
+    progress:progress,
+    queue:{items:queue.map(slimEp),u:queueU},
+    playlists:(function(){
+      var out={};
+      Object.keys(lists).forEach(function(id){
+        var l=lists[id];
+        out[id]=l.removed
+          ? {id:id,removed:true,u:l.u||0}
+          : {id:id,name:l.name,items:(l.items||[]).map(slimEp),u:l.u||0,removed:false};
+      });
+      return out;
+    })(),
+    prefs:{
+      rate:{v:rate,u:load('sp_rate_u',0)},
+      sort:{v:sort,u:load('sp_sort_u',0)},
+      filter:{v:filter,u:load('sp_filter_u',0)}
+    }
+  };
+}
+
+/* Take the server's merged view and make this device match it. */
+function applyMerged(m){
+  if(!m)return Promise.resolve();
+
+  progress=m.progress||{};save(K.prog,progress);
+
+  if(m.queue&&(m.queue.u||0)>=queueU){
+    queue=(m.queue.items||[]).slice();
+    queueU=m.queue.u||0;
+    save(K.queue,queue);save(K.qu,queueU);
+  }
+
+  if(m.playlists){
+    var incoming={};
+    Object.keys(m.playlists).forEach(function(id){
+      var l=m.playlists[id];
+      incoming[id]=l.removed?{id:id,removed:true,u:l.u||0}
+                            :{id:id,name:l.name,items:l.items||[],u:l.u||0,removed:false};
+    });
+    lists=incoming;
+    save(K.lists,lists);
+  }
+
+  var p=m.prefs||{};
+  if(p.rate&&p.rate.u>load('sp_rate_u',0)){
+    rate=p.rate.v;save(K.rate,rate);save('sp_rate_u',p.rate.u);
+    audio.playbackRate=rate;var rs=$('rateSel');if(rs)rs.value=String(rate);
+  }
+  if(p.sort&&p.sort.u>load('sp_sort_u',0)){sort=p.sort.v;save(K.sort,sort);save('sp_sort_u',p.sort.u);}
+  if(p.filter&&p.filter.u>load('sp_filter_u',0)){filter=p.filter.v;save(K.filter,filter);save('sp_filter_u',p.filter.u);}
+
+  /* subscriptions: drop what the other device removed, fetch what it added */
+  var mf=m.feeds||{}, adds=[];
+  Object.keys(mf).forEach(function(url){
+    var e=mf[url], local=feedOf(url);
+    if(e.removed){
+      if(local&&(e.u||0)>(local.u||0)){
+        feeds=feeds.filter(function(x){return x.url!==url;});
+        tombs[url]=e.u;
+      }
+    }else{
+      if(tombs[url]&&tombs[url]>(e.u||0))return;   /* we removed it more recently */
+      if(tombs[url]){delete tombs[url];}
+      if(!local)adds.push(e);
+    }
+  });
+  save(K.feeds,feeds);save(K.tombs,tombs);
+
+  /* adopt the order the merged state carries, so rearranging on one device
+     shows up on the others; anything without an order goes to the end */
+  var ord={};
+  Object.keys(mf).forEach(function(u){
+    if(!mf[u].removed&&typeof mf[u].order==='number')ord[u]=mf[u].order;
+  });
+  if(Object.keys(ord).length){
+    feeds.sort(function(a,b){
+      var oa=(a.url in ord)?ord[a.url]:9999, ob=(b.url in ord)?ord[b.url]:9999;
+      return oa-ob;
+    });
+    save(K.feeds,feeds);
+  }
+
+  if(!adds.length)return Promise.resolve();
+  /* pull the RSS for anything newly subscribed on the other device */
+  return Promise.all(adds.map(function(e){
+    return addFeedQuiet(e.url,{image:e.image,author:e.author},e.u);
+  }));
+}
+
+function addFeedQuiet(url,meta,u){
+  if(feedOf(url))return Promise.resolve();
+  return fetchFeed(url).then(function(x){
+    var f=parseFeed(x,url,meta&&meta.image);
+    if(meta&&meta.image&&!f.image)f.image=meta.image;
+    if(meta&&meta.author&&!f.author)f.author=meta.author;
+    f.u=u||Date.now();
+    feeds.push(f);save(K.feeds,feeds);
+  }).catch(function(){});
+}
+
+/* State now belongs to whoever is signed in - the server decides, not the
+   client - so there is no name in the URL and no way to ask for someone
+   else's history. */
+function pushState(payload){
+  return authFetch('/state',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(payload)
+  });
+}
+
+function syncNow(){
+  if(!profile||syncing)return Promise.resolve();
+  syncing=true;setSync('busy','Syncing…');
+  return pushState(buildPayload()).then(function(r){
+    if(r.status===401)throw new Error('signed-out');
+    if(!r.ok)throw new Error('server said '+r.status);
+    return r.json();
+  }).then(function(m){
+    return applyMerged(m);
+  }).then(function(){
+    syncing=false;
+    setSync('ok','Synced '+new Date().toLocaleTimeString([],{hour:'numeric',minute:'2-digit'}));
+    render();renderQueue();
+  }).catch(function(e){
+    syncing=false;
+    if(e.message==='signed-out'){
+      setSync('err','Session expired — sign in again');
+      openGate('login');
+    }else{
+      setSync('err','Offline — changes saved here and will sync later');
+    }
+  });
+}
+
+/* batch up rapid changes instead of hammering the server */
+function schedulePush(){
+  if(!profile)return;
+  clearTimeout(syncTimer);
+  syncTimer=setTimeout(syncNow,4000);
+}
+
+/* Pull every state variable from whichever account is now active. */
+function loadAll(){
+  feeds=load(K.feeds,[]);
+  progress=load(K.prog,{});
+  queue=load(K.queue,[]);
+  queueU=load(K.qu,0);
+  tombs=load(K.tombs,{});
+  lists=load(K.lists,{});
+  rate=load(K.rate,1);
+  filter=load(K.filter,'all');
+  sort=load(K.sort,'newest');
+  audio.playbackRate=rate;
+  var rs=$('rateSel');if(rs)rs.value=String(rate);
+}
+
+function setProfile(name){
+  if(name===profile){renderProfileSheet();return;}
+
+  /* flush the outgoing account's position before we leave it */
+  if(profile&&current)setProg(current.guid,{pos:curTime(),dur:curDur()});
+
+  /* A debounced push may still be queued. Send it now, while the session
+     still belongs to the account we are leaving. */
+  if(profile){pushState(buildPayload()).catch(function(){});}
+  clearTimeout(syncTimer);
+
+  /* stop playback - carrying an episode across accounts would write your
+     listening position into someone else's history */
+  try{audio.pause();audio.removeAttribute('src');audio.load();}catch(e){}
+  current=null;
+  $('mini').classList.remove('on');
+  $('np').classList.remove('open');
+
+  profile=name;
+  localStorage.setItem(K.profile,JSON.stringify(profile));
+
+  loadAll();                 /* now reading this account's own storage */
+  view='library';showUrl=null;
+  render();renderQueue();
+
+  if(name){setSync('busy','Syncing…');syncNow();}
+  else setSync('off','');
+  renderProfileSheet();
+
+  feeds.forEach(function(f){refreshFeed(f.url);});
+}
+
+/* ---------------- accounts ---------------- */
+var authStatus=null;    /* {setupNeeded,user} - null when there is no server */
+var gateMode='login';
+
+function authFetch(p,opts){
+  opts=opts||{};
+  opts.credentials='same-origin';       /* carry the session cookie */
+  return fetch(API+p,opts);
+}
+
+function checkAuth(){
+  return authFetch('/auth/status').then(function(r){
+    if(!r.ok)throw new Error('no server');
+    return r.json();
+  }).then(function(s){authStatus=s;return s;})
+   .catch(function(){authStatus=null;return null;});
+}
+
+function openGate(mode){
+  gateMode=mode;
+  $('gate').classList.add('open');
+  $('gateErr').classList.add('hidden');
+  $('gatePass2').classList.toggle('hidden',mode==='login');
+  /* The setup code is only ever asked for on the very first account - it is
+     the one moment the server has nobody to authenticate you against. */
+  var needToken=mode==='setup'&&!!(authStatus&&authStatus.tokenRequired);
+  $('gateToken').classList.toggle('hidden',!needToken);
+  if(mode==='setup'){
+    $('gateTitle').textContent='Create your account';
+    $('gateSub').textContent=needToken
+      ? 'This is the first account on this server. Enter the setup code from the server log, then pick a name and password.'
+      : 'This is the first account on this server. Pick a name and a password.';
+    $('gateGo').textContent='Create account';
+    $('gateLocal').classList.remove('hidden');
+  }else if(mode==='add'){
+    $('gateTitle').textContent='Add an account';
+    $('gateSub').textContent='A second account on this server, with its own separate library.';
+    $('gateGo').textContent='Create account';
+    $('gateLocal').classList.add('hidden');
+  }else{
+    $('gateTitle').textContent='Sign in';
+    $('gateSub').textContent='Your shows and listening history live on your own server.';
+    $('gateGo').textContent='Sign in';
+    $('gateLocal').classList.remove('hidden');
+  }
+  $('gateToken').value='';$('gateName').value='';$('gatePass').value='';$('gatePass2').value='';
+  var first=needToken?'gateToken':'gateName';
+  setTimeout(function(){try{$(first).focus();}catch(e){}},80);
+}
+function closeGate(){$('gate').classList.remove('open');}
+function gateError(msg){
+  var e=$('gateErr');
+  e.textContent=msg;e.classList.remove('hidden');
+  $('gateGo').removeAttribute('disabled');
+}
+
+function submitGate(){
+  var name=$('gateName').value.trim(), pass=$('gatePass').value;
+  var tokenNeeded=!$('gateToken').classList.contains('hidden');
+  var token=$('gateToken').value.trim();
+  if(tokenNeeded&&!token)return gateError('Enter the setup code printed in the server log.');
+  if(!name||!pass)return gateError('Enter a name and a password.');
+  if(gateMode!=='login'){
+    if(pass.length<8)return gateError('Password must be at least 8 characters.');
+    if(pass!==$('gatePass2').value)return gateError('Those passwords do not match.');
+  }
+  $('gateGo').setAttribute('disabled','disabled');
+  var payload={name:name,password:pass};
+  if(tokenNeeded)payload.token=token;
+  authFetch(gateMode==='login'?'/auth/login':'/auth/register',{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(payload)
+  }).then(function(r){
+    return r.json().then(function(d){
+      if(!r.ok)throw new Error(d.error||('server said '+r.status));
+      return d;
+    });
+  }).then(function(d){
+    $('gateGo').removeAttribute('disabled');
+    closeGate();
+    if(gateMode==='add'){renderProfileSheet();return;}   /* stay signed in as yourself */
+    checkAuth();
+    setProfile(d.user);
+  }).catch(function(e){
+    gateError(e.message==='Failed to fetch'
+      ? 'Cannot reach the server. Check that it is running.' : e.message);
+  });
+}
+
+function signOut(){
+  authFetch('/auth/logout',{method:'POST'}).catch(function(){}).then(function(){
+    authStatus=null;
+    setProfile(null);
+    $('profileSheet').classList.remove('open');
+    checkAuth().then(function(){openGate('login');});
+  });
+}
+
+/* ---------------- playlists ---------------- */
+/* Episodes are stored by value, not by reference to a feed, so a playlist
+   keeps working after you unsubscribe from the show it came from. */
+function slimEp(e){
+  return {guid:e.guid,title:e.title,url:e.url,image:e.image,show:e.show,
+          feedUrl:e.feedUrl,dur:e.dur,date:e.date};
+}
+function liveLists(){
+  return Object.keys(lists).map(function(id){return lists[id];})
+    .filter(function(l){return l&&!l.removed;})
+    .sort(function(a,b){return (a.name||'').localeCompare(b.name||'');});
+}
+function saveLists(){save(K.lists,lists);schedulePush();}
+
+function newList(name){
+  var id='pl_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,7);
+  lists[id]={id:id,name:name,items:[],u:Date.now(),removed:false};
+  saveLists();
+  return lists[id];
+}
+function renameList(id,name){
+  if(!lists[id])return;
+  lists[id].name=name;lists[id].u=Date.now();saveLists();
+}
+function deleteList(id){
+  if(!lists[id])return;
+  lists[id]={id:id,removed:true,u:Date.now()};   /* tombstone, not a deletion */
+  saveLists();
+}
+function listHas(id,guid){
+  var l=lists[id];
+  return !!(l&&!l.removed&&(l.items||[]).some(function(e){return e.guid===guid;}));
+}
+function addToList(id,ep){
+  var l=lists[id];
+  if(!l||l.removed)return;
+  if(listHas(id,ep.guid))return;
+  l.items=(l.items||[]).concat([slimEp(ep)]);
+  l.u=Date.now();saveLists();
+}
+function removeFromList(id,guid){
+  var l=lists[id];
+  if(!l||l.removed)return;
+  l.items=(l.items||[]).filter(function(e){return e.guid!==guid;});
+  l.u=Date.now();saveLists();
+}
+function moveInList(id,from,to){
+  var l=lists[id];
+  if(!l||l.removed)return;
+  l.items.splice(to,0,l.items.splice(from,1)[0]);
+  l.u=Date.now();saveLists();
+}
+
+/* ================= cast ================= */
+var castCtx=null,rp=null,rc=null,castConnected=false;
+window['__onGCastApiAvailable']=function(ok){
+  if(!ok||!window.cast||!window.cast.framework)return;
+  try{
+    castCtx=cast.framework.CastContext.getInstance();
+    castCtx.setOptions({
+      receiverApplicationId:chrome.cast.media.DEFAULT_MEDIA_RECEIVER_APP_ID,
+      autoJoinPolicy:chrome.cast.AutoJoinPolicy.ORIGIN_SCOPED});
+    rp=new cast.framework.RemotePlayer();
+    rc=new cast.framework.RemotePlayerController(rp);
+
+    rc.addEventListener(cast.framework.RemotePlayerEventType.IS_CONNECTED_CHANGED,function(){
+      castConnected=rp.isConnected;
+      $('castBanner').classList.toggle('on',castConnected);
+      $('castBtn').classList.toggle('on',castConnected);
+      $('npCastBtn').classList.toggle('on',castConnected);
+      if(castConnected){
+        var s=castCtx.getCurrentSession();
+        $('castDevice').textContent=s?s.getCastDevice().friendlyName:'TV';
+        if(current){var at=audio.currentTime;audio.pause();castLoad(current,at);}
+      }else if(current){
+        var at2=rp.currentTime||prog(current.guid).pos||0;
+        audio.src=current.url;audio.currentTime=at2;audio.playbackRate=rate;
+      }
+      syncUI();if(view==='show')renderShow();
+    });
+    rc.addEventListener(cast.framework.RemotePlayerEventType.CURRENT_TIME_CHANGED,function(){
+      if(castConnected&&current){setProg(current.guid,{pos:rp.currentTime,dur:rp.duration||0});syncUI();}
+    });
+    rc.addEventListener(cast.framework.RemotePlayerEventType.IS_PAUSED_CHANGED,function(){
+      syncUI();if(view==='show')renderShow();});
+    rc.addEventListener(cast.framework.RemotePlayerEventType.MEDIA_INFO_CHANGED,function(){
+      if(castConnected&&rp.playerState==='IDLE'&&current)onEnded();});
+
+    $('castBtn').classList.remove('hidden');
+    $('npCastBtn').classList.remove('hidden');
+  }catch(e){}
+};
+function castLoad(ep,at){
+  var s=castCtx&&castCtx.getCurrentSession();
+  if(!s)return;
+  var info=new chrome.cast.media.MediaInfo(ep.url,'audio/mpeg');
+  info.metadata=new chrome.cast.media.MusicTrackMediaMetadata();
+  info.metadata.title=ep.title;
+  info.metadata.albumName=ep.show;
+  if(ep.image)info.metadata.images=[new chrome.cast.Image(ep.image)];
+  var req=new chrome.cast.media.LoadRequest(info);
+  req.currentTime=at||0;req.autoplay=true;
+  s.loadMedia(req).then(syncUI,function(){});
+}
+function requestCast(){if(castCtx)castCtx.requestSession().catch(function(){});}
+$('castBtn').onclick=requestCast;
+$('npCastBtn').onclick=requestCast;
+audio.addEventListener('webkitplaybacktargetavailabilitychanged',function(e){
+  $('airplayBtn').classList.toggle('hidden',e.availability!=='available');});
+$('airplayBtn').onclick=function(){
+  if(audio.webkitShowPlaybackTargetPicker)audio.webkitShowPlaybackTargetPicker();};
+
+/* ================= transport ================= */
+function isCasting(){return castConnected&&rp&&rp.isConnected;}
+function curTime(){return isCasting()?(rp.currentTime||0):audio.currentTime;}
+function curDur(){
+  if(isCasting())return rp.duration||0;
+  return isFinite(audio.duration)?audio.duration:((current&&current.dur)||0);
+}
+function isPaused(){return isCasting()?rp.isPaused:audio.paused;}
+
+function playEpisode(ep){
+  current=ep;
+  var start=prog(ep.guid).played?0:(prog(ep.guid).pos||0);
+  if(isCasting()){castLoad(ep,start);}
+  else{
+    audio.src=ep.url;audio.playbackRate=rate;
+    var seek=function(){
+      if(start>0&&start<(audio.duration||Infinity))audio.currentTime=start;
+      audio.removeEventListener('loadedmetadata',seek);
+    };
+    audio.addEventListener('loadedmetadata',seek);
+    audio.play().catch(function(){});
+  }
+  $('mini').classList.add('on');
+  setArt($('miniArt'),ep.image);
+  setArt($('npArt'),ep.image);
+  setMediaSession(ep);syncUI();
+  if(view==='show')renderShow();
+}
+function setArt(img,src){
+  if(src){img.src=src;img.classList.remove('hidden');}
+  else{img.removeAttribute('src');}
+}
+function togglePlay(){
+  if(!current)return;
+  if(isCasting())rc.playOrPause();
+  else if(audio.paused)audio.play().catch(function(){});else audio.pause();
+  syncUI();if(view==='show')renderShow();
+}
+function seekTo(t){
+  var d=curDur();
+  t=Math.max(0,Math.min(d||t,t));
+  if(isCasting()){rp.currentTime=t;rc.seek();}else audio.currentTime=t;
+  syncUI();
+}
+function nudge(d){seekTo(curTime()+d);}
+function playNext(){
+  if(!queue.length)return false;
+  var n=queue.shift();saveQueue();renderQueue();playEpisode(n);return true;
+}
+function onEnded(){
+  if(current)setProg(current.guid,{played:true,pos:0});
+  if(view==='show')renderShow();
+  if(!playNext()){
+    $('mini').classList.remove('on');$('np').classList.remove('open');current=null;
+  }
+}
+
+/* ================= ui sync ================= */
+var RING=0;
+function initRing(){
+  try{RING=$('artRing').getTotalLength();
+    $('artRing').style.strokeDasharray=RING;
+    $('artRing').style.strokeDashoffset=RING;}catch(e){}
+}
+function setIcon(btn,name){btn.querySelector('use').setAttribute('href','#i-'+name);}
+function syncUI(){
+  var t=curTime(),d=curDur(),pct=d?t/d:0;
+  if(!scrubbing)$('scrubBar').value=Math.round(pct*1000);
+  $('tCur').textContent=fmt(t);$('tDur').textContent=fmt(d);
+  if(RING)$('artRing').style.strokeDashoffset=RING*(1-pct);
+  $('miniBar').style.width=(pct*100)+'%';
+
+  var g=isPaused()?'play':'pause';
+  setIcon($('mainPlay'),g);setIcon($('miniPlay'),g);
+
+  if(current){
+    var played=prog(current.guid).played;
+    $('npTitle').textContent=current.title;
+    $('npShow').textContent=current.show||'';
+    $('miniTitle').textContent=current.title;
+    $('miniSub').innerHTML=isCasting()?(icon('cast','ico-sm')+'<span>Casting</span>'):esc(current.show||'');
+    setIcon($('markPlayedBtn'),played?'check-circle':'circle');
+    $('markPlayedBtn').classList.toggle('on',played);
+  }
+}
+var lastSave=0;
+function tick(){
+  if(!current)return;
+  var t=curTime(),d=curDur();
+  syncUI();
+  var now=Date.now();
+  if(now-lastSave>3000){
+    lastSave=now;
+    setProg(current.guid,{pos:t,dur:d});
+    if(d&&t/d>0.95&&!prog(current.guid).played){
+      setProg(current.guid,{played:true});
+      if(view==='show')renderShow();
+    }
+  }
+}
+audio.addEventListener('timeupdate',tick);
+audio.addEventListener('play',function(){syncUI();if(view==='show')renderShow();});
+audio.addEventListener('pause',function(){
+  if(current)setProg(current.guid,{pos:audio.currentTime,dur:curDur()});
+  syncUI();if(view==='show')renderShow();});
+audio.addEventListener('ended',onEnded);
+setInterval(function(){if(isCasting())tick();},1000);
+
+function setMediaSession(ep){
+  if(!('mediaSession' in navigator))return;
+  try{
+    var md={title:ep.title,artist:ep.show||'Podcast',album:'Spindle'};
+    if(ep.image)md.artwork=[{src:ep.image,sizes:'512x512',type:'image/jpeg'}];
+    navigator.mediaSession.metadata=new MediaMetadata(md);
+    navigator.mediaSession.setActionHandler('play',togglePlay);
+    navigator.mediaSession.setActionHandler('pause',togglePlay);
+    navigator.mediaSession.setActionHandler('seekbackward',function(){nudge(-15);});
+    navigator.mediaSession.setActionHandler('seekforward',function(){nudge(30);});
+    navigator.mediaSession.setActionHandler('nexttrack',playNext);
+    navigator.mediaSession.setActionHandler('seekto',function(d){if(d.seekTime!=null)seekTo(d.seekTime);});
+  }catch(e){}
+}
+
+/* ================= wiring ================= */
+function saveQueue(){
+  queueU=Date.now();save(K.queue,queue);save(K.qu,queueU);schedulePush();
+  if(view==='lists')renderLists();
+}
+
+/* ---- playlists ---- */
+function renderLists(){
+  var ls=liveLists();
+  var html='<div class="add-row"><input type="text" id="newListName" '+
+    'placeholder="New playlist name" autocomplete="off" maxlength="60">'+
+    '<button class="add-btn" id="mkList" aria-label="Create playlist">'+icon('plus')+'</button></div>';
+
+  /* Up Next is the built-in list, always first */
+  html+='<div class="list-row" data-q="1">'+
+    '<div class="lr-ico">'+icon('queue')+'</div>'+
+    '<div class="lr-b"><div class="lr-n">Up Next</div>'+
+    '<div class="lr-c">'+(queue.length?queue.length+(queue.length===1?' episode':' episodes'):'empty')+
+    ' \u00b7 plays automatically</div></div>'+
+    (queue.length?'<button class="lr-play" data-playq="1" aria-label="Play queue">'+icon('play')+'</button>':'')+
+    '</div>';
+
+  ls.forEach(function(l){
+    var n=(l.items||[]).length;
+    html+='<div class="list-row" data-id="'+esc(l.id)+'">'+
+      '<div class="lr-ico">'+icon('playlist')+'</div>'+
+      '<div class="lr-b"><div class="lr-n">'+esc(l.name)+'</div>'+
+      '<div class="lr-c">'+(n?n+(n===1?' episode':' episodes'):'empty')+'</div></div>'+
+      (n?'<button class="lr-play" data-play="'+esc(l.id)+'" aria-label="Play">'+icon('play')+'</button>':'')+
+      '</div>';
+  });
+
+  if(!ls.length)
+    html+='<div class="msg">'+icon('playlist','msg-ico')+
+      '<strong>No playlists yet</strong>Make one above, then use Add on any episode to drop it in. '+
+      'Playlists keep working even after you unsubscribe from the show.</div>';
+
+  scroller.innerHTML=html;
+
+  $('mkList').onclick=function(){
+    var n=$('newListName').value.trim();
+    if(!n)return;
+    go('list',newList(n).id);
+  };
+  $('newListName').onkeydown=function(e){if(e.key==='Enter'){e.preventDefault();$('mkList').click();}};
+
+  Array.prototype.forEach.call(scroller.querySelectorAll('.list-row'),function(r){
+    r.onclick=function(e){
+      if(e.target.closest('.lr-play'))return;
+      if(r.getAttribute('data-q'))openQueueSheet();
+      else go('list',r.getAttribute('data-id'));
+    };
+  });
+  Array.prototype.forEach.call(scroller.querySelectorAll('.lr-play'),function(b){
+    b.onclick=function(e){
+      e.stopPropagation();
+      if(b.getAttribute('data-playq')){if(queue.length)playNext();return;}
+      playList(b.getAttribute('data-play'));
+    };
+  });
+}
+
+/* Play a whole list: first episode now, the rest go to the front of Up Next. */
+function playList(id){
+  var l=lists[id];
+  if(!l||l.removed||!(l.items||[]).length)return;
+  var items=l.items.slice();
+  var first=items.shift();
+  queue=items.concat(queue);
+  saveQueue();
+  playEpisode(first);
+}
+
+function renderList(){
+  var l=lists[listId];
+  if(!l||l.removed){go('lists');return;}
+  var items=l.items||[];
+
+  scroller.innerHTML='<div class="list-head"><h2>'+esc(l.name)+'</h2>'+
+    '<div class="lh-sub">'+(items.length?items.length+(items.length===1?' episode':' episodes'):'empty')+'</div>'+
+    (items.length?'<button class="lh-play" id="playAll">'+icon('play','ico-sm')+'Play all</button>':'')+
+    '</div><div id="listItems"></div>';
+
+  var pa=$('playAll');
+  if(pa)pa.onclick=function(){playList(l.id);};
+
+  var box=$('listItems');
+  if(!items.length){
+    box.innerHTML='<div class="msg">Nothing in here yet. Tap Add on any episode to put it in this playlist.</div>';
+    return;
+  }
+
+  var C=2*Math.PI*21.5;
+  items.forEach(function(ep,idx){
+    var p=prog(ep.guid), total=p.dur||ep.dur||0;
+    var pct=total?Math.min(1,p.pos/total):0;
+    var isCur=current&&current.guid===ep.guid;
+
+    var row=document.createElement('div');
+    row.className='ep'+(p.played?' played':'');
+    row.innerHTML=
+      '<button class="ep-play'+(isCur?' current':'')+'" aria-label="Play">'+
+        ((pct>0.01&&!p.played)?'<svg class="ep-ring" viewBox="0 0 46 46"><circle cx="23" cy="23" r="21.5" stroke-dasharray="'+C+'" stroke-dashoffset="'+(C*(1-pct))+'"/></svg>':'')+
+        icon((isCur&&!isPaused())?'pause':'play')+'</button>'+
+      '<div class="ep-body"><p class="ep-title">'+esc(ep.title)+'</p>'+
+        '<div class="ep-sub">'+(ep.show?'<span>'+esc(ep.show)+'</span>':'')+
+          (total?'<span>'+fmt(total)+'</span>':'')+
+          (p.played?'<span class="badge">'+icon('check','ico-sm')+'played</span>':'')+
+        '</div>'+
+        '<div class="ep-actions">'+
+          '<button class="up-btn"'+(idx===0?' disabled':'')+'>\u2191</button>'+
+          '<button class="dn-btn"'+(idx===items.length-1?' disabled':'')+'>\u2193</button>'+
+          '<button class="rm-btn">'+icon('x','ico-sm')+'Remove</button>'+
+        '</div></div>';
+
+    row.querySelector('.ep-play').onclick=function(){isCur?togglePlay():playEpisode(ep);};
+    row.querySelector('.up-btn').onclick=function(){if(idx>0){moveInList(l.id,idx,idx-1);renderList();}};
+    row.querySelector('.dn-btn').onclick=function(){if(idx<items.length-1){moveInList(l.id,idx,idx+1);renderList();}};
+    row.querySelector('.rm-btn').onclick=function(){removeFromList(l.id,ep.guid);renderList();};
+    box.appendChild(row);
+  });
+}
+
+/* ---- "add to..." picker ---- */
+var addTarget=null;
+function openAddSheet(ep){
+  addTarget=ep;
+  var inQ=queue.some(function(q){return q.guid===ep.guid;});
+  var html='<div class="list-row'+(inQ?' on':'')+'" data-t="queue">'+
+    '<div class="lr-ico">'+icon(inQ?'check':'queue')+'</div>'+
+    '<div class="lr-b"><div class="lr-n">Up Next</div>'+
+    '<div class="lr-c">'+(inQ?'tap to remove':'plays after the current episode')+'</div></div></div>';
+
+  liveLists().forEach(function(l){
+    var inIt=listHas(l.id,ep.guid);
+    html+='<div class="list-row'+(inIt?' on':'')+'" data-t="'+esc(l.id)+'">'+
+      '<div class="lr-ico">'+icon(inIt?'check':'playlist')+'</div>'+
+      '<div class="lr-b"><div class="lr-n">'+esc(l.name)+'</div>'+
+      '<div class="lr-c">'+(inIt?'tap to remove':(l.items||[]).length+' episodes')+'</div></div></div>';
+  });
+
+  html+='<div class="p-new"><input type="text" id="addNewList" placeholder="New playlist\u2026" '+
+    'autocomplete="off" maxlength="60"><button id="addMk">Create</button></div>';
+  $('addBody').innerHTML=html;
+
+  Array.prototype.forEach.call($('addBody').querySelectorAll('.list-row'),function(r){
+    r.onclick=function(){
+      var t=r.getAttribute('data-t');
+      if(t==='queue'){
+        if(queue.some(function(q){return q.guid===addTarget.guid;}))
+          queue=queue.filter(function(q){return q.guid!==addTarget.guid;});
+        else queue=queue.concat([slimEp(addTarget)]);
+        saveQueue();
+      }else{
+        if(listHas(t,addTarget.guid))removeFromList(t,addTarget.guid);
+        else addToList(t,addTarget);
+      }
+      closeAddSheet();
+      if(view==='show')renderShow();
+      else if(view==='list')renderList();
+      else if(view==='lists')renderLists();
+    };
+  });
+  $('addMk').onclick=function(){
+    var n=$('addNewList').value.trim();
+    if(!n)return;
+    addToList(newList(n).id,addTarget);
+    closeAddSheet();
+    if(view==='show')renderShow();
+  };
+  $('addSheet').classList.add('open');
+}
+function closeAddSheet(){$('addSheet').classList.remove('open');addTarget=null;}
+
+/* ---- account sheet ---- */
+function renderProfileSheet(){
+  var b=$('profileBody');
+  if(!b)return;
+  var html='';
+
+  if(!authStatus){
+    html+='<p class="p-note">No sync server reachable, so this device is keeping '+
+      'everything locally. The app works normally; nothing is shared.</p>';
+    b.innerHTML=html;
+    return;
+  }
+
+  if(profile){
+    html+='<div class="p-row on">'+icon('person')+'<span class="who">'+esc(profile)+'</span>'+
+      '<span class="tick">'+icon('check','ico-sm')+'</span></div>'+
+      '<button class="p-sync" id="syncNowBtn">'+icon('sync','ico-sm')+'Sync now</button>'+
+      '<div class="p-note" id="syncStatus">'+esc(syncMsg)+'</div>'+
+      '<button class="p-sync" id="addAcctBtn">'+icon('plus','ico-sm')+'Add another account</button>'+
+      '<button class="p-sync" id="pwBtn">'+icon('person','ico-sm')+'Change password</button>'+
+      '<button class="p-sync" id="signOutBtn">Sign out</button>'+
+      '<p class="p-note">Each account keeps its own shows, listening positions and '+
+      'queue. Signing in on another device brings that account\'s library with it.</p>';
+  }else{
+    html+='<p class="p-note">Not signed in — this device is keeping everything locally '+
+      'and syncing nothing.</p>'+
+      '<button class="p-sync" id="signInBtn">'+icon('person','ico-sm')+'Sign in</button>';
+  }
+
+  b.innerHTML=html;
+
+  var sn=$('syncNowBtn');   if(sn)sn.onclick=function(){syncNow();};
+  var aa=$('addAcctBtn');   if(aa)aa.onclick=function(){$('profileSheet').classList.remove('open');openGate('add');};
+  var so=$('signOutBtn');   if(so)so.onclick=signOut;
+  var si=$('signInBtn');    if(si)si.onclick=function(){$('profileSheet').classList.remove('open');openGate('login');};
+  var pw=$('pwBtn');        if(pw)pw.onclick=changePassword;
+}
+
+function changePassword(){
+  var cur=prompt('Current password');
+  if(cur===null)return;
+  var next=prompt('New password (at least 8 characters)');
+  if(next===null)return;
+  authFetch('/auth/password',{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({current:cur,next:next})
+  }).then(function(r){return r.json().then(function(d){
+    if(!r.ok)throw new Error(d.error||'failed');return d;});})
+    .then(function(){alert('Password changed. Other devices will need to sign in again.');})
+    .catch(function(e){alert('Could not change password: '+e.message);});
+}
+
+$('profileBtn').onclick=function(){
+  $('profileSheet').classList.add('open');
+  renderProfileSheet();
+  checkAuth().then(function(){renderProfileSheet();});
+};
+$('closeP').onclick=function(){$('profileSheet').classList.remove('open');};
+
+$('refreshBtn').onclick=function(){
+  var b=$('refreshBtn');
+  if(b.classList.contains('spin'))return;
+  b.classList.add('spin');
+  refreshAll().then(function(n){
+    b.classList.remove('spin');
+    setStatusToast(n?(n+' new episode'+(n===1?'':'s')):'No new episodes');
+  });
+};
+
+$('reorderBtn').onclick=function(){
+  reordering=!reordering;
+  if(!reordering)commitOrder();
+  render();
+};
+
+$('searchNavBtn').onclick=function(){go('search');};
+$('backBtn').onclick=function(){
+  if(view==='search'){searchState='idle';searchResults=[];searchMsg='';}
+  if(view==='list'){go('lists');return;}
+  go('library');
+};
+$('unsubBtn').onclick=function(){
+  var f=feedOf(showUrl);
+  if(!f)return;
+  if(!confirm('Unsubscribe from '+f.title+'?\n\nYour listening history for this show is kept.'))return;
+  feeds=feeds.filter(function(x){return x.url!==showUrl;});
+  tombs[showUrl]=Date.now();
+  save(K.feeds,feeds);save(K.tombs,tombs);
+  schedulePush();go('library');
+};
+$('queueBtn').onclick=function(){go('lists');};
+$('closeQ').onclick=function(){$('queueSheet').classList.remove('open');};
+$('closeAdd').onclick=closeAddSheet;
+function openQueueSheet(){renderQueue();$('queueSheet').classList.add('open');}
+
+$('delListBtn').onclick=function(){
+  var l=lists[listId];
+  if(!l||l.removed)return;
+  var choice=prompt('Rename this playlist, or clear the box and press OK to delete it.', l.name);
+  if(choice===null)return;
+  if(choice.trim()===''){
+    if(confirm('Delete the playlist "'+l.name+'"? The episodes themselves are not affected.')){
+      deleteList(l.id);go('lists');
+    }
+    return;
+  }
+  renameList(l.id,choice.trim());
+  render();
+};
+
+$('mini').onclick=function(e){if(!e.target.closest('#miniPlay'))$('np').classList.add('open');};
+$('miniPlay').onclick=function(e){e.stopPropagation();togglePlay();};
+$('npGrip').onclick=function(){$('np').classList.remove('open');};
+$('mainPlay').onclick=togglePlay;
+$('back15').onclick=function(){nudge(-15);};
+$('fwd30').onclick=function(){nudge(30);};
+$('nextBtn').onclick=playNext;
+$('markPlayedBtn').onclick=function(){
+  if(!current)return;
+  setProg(current.guid,{played:!prog(current.guid).played});
+  syncUI();if(view==='show')renderShow();};
+
+$('scrubBar').addEventListener('input',function(){
+  scrubbing=true;$('tCur').textContent=fmt(($('scrubBar').value/1000)*curDur());});
+$('scrubBar').addEventListener('change',function(){
+  seekTo(($('scrubBar').value/1000)*curDur());scrubbing=false;});
+
+$('rateSel').value=String(rate);
+$('rateSel').onchange=function(){
+  rate=parseFloat($('rateSel').value);save(K.rate,rate);save('sp_rate_u',Date.now());audio.playbackRate=rate;schedulePush();};
+
+var ty=0;
+$('np').addEventListener('touchstart',function(e){ty=e.touches[0].clientY;},{passive:true});
+$('np').addEventListener('touchend',function(e){
+  if(e.changedTouches[0].clientY-ty>90)$('np').classList.remove('open');},{passive:true});
+
+/*
+ * Service worker registration, plus the bit that makes updates actually land.
+ *
+ * The old failure was an installed app serving months-old code: a worker that
+ * never checked for a new version, in front of a cache that answered every
+ * request. Now the page is fetched network-first (see sw.js), the worker is
+ * asked to check whenever the app is reopened, and when a new one takes over
+ * the page reloads itself - unless something is playing, because interrupting
+ * an episode to apply an update is worse than waiting until next time.
+ */
+if('serviceWorker' in navigator){
+  window.addEventListener('load',function(){
+    navigator.serviceWorker.register('sw.js').then(function(reg){
+      function check(){try{reg.update();}catch(e){}}
+      /* an installed app can sit for weeks without a navigation, so check
+         on every return to it rather than waiting for the browser */
+      document.addEventListener('visibilitychange',function(){
+        if(!document.hidden)check();
+      });
+      setInterval(check,60*60*1000);
+      /* a worker already waiting when we loaded: let it through */
+      if(reg.waiting&&navigator.serviceWorker.controller)
+        reg.waiting.postMessage('skip-waiting');
+      reg.addEventListener('updatefound',function(){
+        var w=reg.installing;
+        if(!w)return;
+        w.addEventListener('statechange',function(){
+          if(w.state==='installed'&&navigator.serviceWorker.controller)
+            w.postMessage('skip-waiting');
+        });
+      });
+    }).catch(function(){});
+
+    var hadController=!!navigator.serviceWorker.controller;
+    var reloaded=false, wantsReload=false;
+
+    function applyUpdate(){
+      if(reloaded)return;
+      /* never yank the page out from under someone mid-episode */
+      if(audio&&!audio.paused&&!audio.ended){wantsReload=true;return;}
+      reloaded=true;
+      location.reload();
+    }
+    if(audio)audio.addEventListener('pause',function(){if(wantsReload)applyUpdate();});
+
+    navigator.serviceWorker.addEventListener('controllerchange',function(){
+      if(!hadController)return;    /* first ever install - nothing to replace */
+      applyUpdate();
+    });
+  });
+}
+
+$('gateGo').onclick=submitGate;
+$('gatePass').onkeydown=function(e){if(e.key==='Enter')submitGate();};
+$('gatePass2').onkeydown=function(e){if(e.key==='Enter')submitGate();};
+$('gateName').onkeydown=function(e){if(e.key==='Enter')$('gatePass').focus();};
+$('gateLocal').onclick=function(){
+  /* remember this so we don't nag them at every launch */
+  localStorage.setItem('sp_local_only_v1','1');
+  closeGate();setProfile(null);
+};
+
+initRing();
+render();
+renderQueue();
+feeds.forEach(function(f){refreshFeed(f.url);});
+
+/*
+ * What to show on open:
+ *   no server            -> local only, no gate (the app works standalone)
+ *   server, no accounts  -> create the first account
+ *   server, signed in    -> carry on and sync
+ *   server, signed out   -> sign in, unless they explicitly chose local-only
+ */
+checkAuth().then(function(s){
+  if(!s){                                  /* no backend at all */
+    if(profile)setProfile(null);
+    setSync('off','');
+    return;
+  }
+  if(s.setupNeeded){openGate('setup');return;}
+  if(s.user){
+    localStorage.removeItem('sp_local_only_v1');
+    if(profile!==s.user)setProfile(s.user);
+    else{setSync('busy','Syncing…');syncNow();}
+    return;
+  }
+  /* the server has accounts but this device holds no valid session */
+  if(profile)setProfile(null);
+  setSync('off','');
+  if(localStorage.getItem('sp_local_only_v1')!=='1')openGate('login');
+});
+
+setInterval(function(){if(profile&&!document.hidden)syncNow();},120000);
+
+document.addEventListener('visibilitychange',function(){
+  if(!profile)return;
+  if(document.hidden){
+    /* flush the current position before the app is backgrounded */
+    if(current)setProg(current.guid,{pos:curTime(),dur:curDur()});
+    clearTimeout(syncTimer);syncNow();
+  }else{
+    syncNow();
+    if(Date.now()-lastRefresh>9e5){lastRefresh=Date.now();refreshAll();}
+  }
+});
+window.addEventListener('pagehide',function(){
+  if(profile&&current)setProg(current.guid,{pos:curTime(),dur:curDur()});
+});
+})();
+</script>
+
+<template id="artPhTpl"><div class="art art-ph"><svg class="ico"><use href="#i-mic"/></svg></div></template>
+</body>
+</html>
