@@ -1,0 +1,34 @@
+services:
+  spindle:
+    image: node:22-alpine
+    container_name: spindle
+    restart: unless-stopped
+    ports:
+      - "8088:8088"
+    # Everything in ./data is written by the container, so it ends up owned by
+    # whoever the container runs as. Running as a normal user keeps that folder
+    # readable - and backup-able - without sudo.
+    #
+    # 1000:1000 is the first normal user on most Linux systems. If yours is
+    # different, run `id -u` and `id -g` and put your own values here, then
+    # make sure ./data is owned by you: chown -R $(id -u):$(id -g) data
+    user: "1000:1000"
+    environment:
+      - PORT=8088
+      - DATA_DIR=/data
+      - PUBLIC_DIR=/srv/public
+      - TZ=Etc/UTC
+      # Uncomment once the app is reached ONLY over HTTPS. It marks the
+      # session cookie Secure, so it is never sent over a plain connection.
+      # Leave it commented while you are still testing over http://
+      # - SECURE_COOKIES=1
+      # How long a sign-in lasts before it has to be repeated.
+      - SESSION_DAYS=30
+    volumes:
+      # the app itself - index.html, service worker, icons
+      - ./app:/srv/public:ro
+      # the server
+      - ./sync-server:/srv/app:ro
+      # accounts and listening history. THIS is the one to back up.
+      - ./data:/data
+    command: node /srv/app/server.js
